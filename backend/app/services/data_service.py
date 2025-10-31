@@ -9,7 +9,8 @@ from collections import deque
 
 from app.data_collectors.noaa_swpc_collector import NOAASWPCCollector
 from app.data_collectors.tec_collector import TECCollector
-from app.models.storm_predictor import StormPredictor
+from app.models.storm_predictor_v2 import EnhancedStormPredictor
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,18 @@ class DataService:
     def __init__(self, max_history_size: int = 168):  # 7 days of hourly data
         self.noaa_collector = None
         self.tec_collector = None
-        self.predictor = StormPredictor()
+
+        # Use V2 model if available, otherwise fall back to V1
+        v2_model_path = Path('models/v2/best_model.keras')
+        if v2_model_path.exists():
+            logger.info("Loading Enhanced Model V2 for production use")
+            self.predictor = EnhancedStormPredictor(model_path=str(v2_model_path))
+            self.model_version = 'v2'
+        else:
+            logger.warning("V2 model not found, using V1 baseline model")
+            from app.models.storm_predictor import StormPredictor
+            self.predictor = StormPredictor()
+            self.model_version = 'v1'
 
         # Store historical data in memory (deque for efficient append/pop)
         self.historical_data = deque(maxlen=max_history_size)

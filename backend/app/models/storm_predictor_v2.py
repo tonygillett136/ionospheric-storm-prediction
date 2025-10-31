@@ -80,7 +80,10 @@ class MultiHeadAttention(layers.Layer):
     @classmethod
     def from_config(cls, config):
         """Deserialization from config"""
-        return cls(**config)
+        # Extract only the parameters we need, ignore Keras-added params
+        d_model = config.get('d_model')
+        num_heads = config.get('num_heads')
+        return cls(d_model=d_model, num_heads=num_heads)
 
 
 class EnhancedStormPredictor:
