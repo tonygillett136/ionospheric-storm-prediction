@@ -155,12 +155,26 @@ class StormDataGenerator:
 
 
 async def load_training_data(start_date: datetime, end_date: datetime):
-    """Load training data from database"""
+    """Load training data from database and resample to exactly 1 per hour"""
     async with AsyncSessionLocal() as session:
         measurements = await HistoricalDataRepository.get_measurements_by_time_range(
             session, start_date, end_date
         )
-        return measurements
+
+        # CRITICAL FIX: Resample to exactly 1 measurement per hour
+        # Group by hour and take the first measurement in each hour
+        hourly_measurements = {}
+        for m in measurements:
+            # Create hour key (year-month-day-hour)
+            hour_key = m.timestamp.replace(minute=0, second=0, microsecond=0)
+            if hour_key not in hourly_measurements:
+                hourly_measurements[hour_key] = m
+
+        # Convert back to sorted list
+        resampled = sorted(hourly_measurements.values(), key=lambda x: x.timestamp)
+
+        logger.info(f"Resampled {len(measurements)} measurements to {len(resampled)} hourly samples")
+        return resampled
 
 
 def split_data(X, y, train_ratio=0.7, val_ratio=0.15):
