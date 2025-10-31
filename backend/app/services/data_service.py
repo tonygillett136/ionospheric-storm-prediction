@@ -10,6 +10,8 @@ from collections import deque
 from app.data_collectors.noaa_swpc_collector import NOAASWPCCollector
 from app.data_collectors.tec_collector import TECCollector
 from app.models.storm_predictor_v2 import EnhancedStormPredictor
+from app.db.database import get_db
+from app.db.repository import HistoricalDataRepository
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -48,12 +50,15 @@ class DataService:
         self.last_prediction_update: Optional[datetime] = None
 
     async def initialize(self):
-        """Initialize data collectors"""
+        """Initialize data collectors and load historical data"""
         self.noaa_collector = NOAASWPCCollector()
         await self.noaa_collector.__aenter__()
 
         self.tec_collector = TECCollector()
         await self.tec_collector.__aenter__()
+
+        # Load historical data from database
+        await self._load_historical_data_from_db()
 
         logger.info("Data service initialized")
 
@@ -65,6 +70,48 @@ class DataService:
             await self.tec_collector.__aexit__(None, None, None)
 
         logger.info("Data service shutdown")
+
+    async def _load_historical_data_from_db(self):
+        """Load historical data from database to initialize prediction context"""
+        try:
+            # Get database session
+            async for session in get_db():
+                # Load most recent 24 measurements from database
+                # (Use latest_measurements instead of time range to handle gaps in data)
+                measurements = await HistoricalDataRepository.get_latest_measurements(
+                    session, limit=24
+                )
+
+                # Reverse to get chronological order (oldest to newest)
+                measurements = list(reversed(measurements))
+
+                # Convert database records to predictor format
+                for measurement in measurements:
+                    data_point = {
+                        'timestamp': measurement.timestamp.isoformat(),
+                        'tec_statistics': {
+                            'mean': measurement.tec_mean,
+                            'std': measurement.tec_std,
+                            'max': measurement.tec_max,
+                            'min': measurement.tec_min
+                        },
+                        'kp_index': measurement.kp_index,
+                        'dst_index': measurement.dst_index,
+                        'solar_wind_params': {
+                            'speed': measurement.solar_wind_speed,
+                            'density': measurement.solar_wind_density,
+                            'temperature': measurement.solar_wind_temperature
+                        },
+                        'imf_bz': measurement.imf_bz,
+                        'f107_flux': measurement.f107_flux
+                    }
+                    self.historical_data.append(data_point)
+
+                logger.info(f"Loaded {len(measurements)} historical data points from database")
+                break  # Exit after first iteration
+        except Exception as e:
+            logger.warning(f"Could not load historical data from database: {e}")
+            logger.info("Starting with empty historical data - will accumulate over time")
 
     async def collect_all_data(self) -> Dict:
         """
