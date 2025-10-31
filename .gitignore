@@ -45,13 +45,16 @@ venv.bak/
 *.sqlite3
 backend/data/*.db
 
-# Model files (too large for git)
+# Model weight files (too large for git)
 *.keras
 *.h5
 *.pkl
 *.joblib
-models/
-backend/models/
+# Model output directories (weights and checkpoints)
+models/v1/
+models/v2/
+backend/models/v1/
+backend/models/v2/
 
 # Logs
 *.log
