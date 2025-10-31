@@ -90,6 +90,7 @@ const TimelineChart = ({ hourlyProbabilities = [], tecForecast = [] }) => {
             yAxisId="left"
             stroke="rgba(255, 255, 255, 0.5)"
             style={{ fontSize: '12px' }}
+            domain={[0, 100]}
             label={{
               value: 'Probability (%)',
               angle: -90,

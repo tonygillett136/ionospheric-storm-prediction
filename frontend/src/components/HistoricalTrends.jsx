@@ -40,15 +40,14 @@ const HistoricalTrends = () => {
     } catch (err) {
       console.error('Error fetching historical data:', err);
       setError(err.message);
-      // Generate synthetic data for demo
-      setData(generateSyntheticData(timePeriod));
+      setData(null);
       setLoading(false);
     }
   };
 
   const formatDataForPeriod = (rawData, timePeriod) => {
     if (!rawData || rawData.length === 0) {
-      return generateSyntheticData(timePeriod);
+      return null;
     }
 
     // Format based on period
@@ -244,8 +243,16 @@ const HistoricalTrends = () => {
           <div>Loading historical data...</div>
         </div>
       ) : error ? (
-        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff6b6b' }}>
-          Using synthetic data for demonstration
+        <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+          <div style={{ color: '#ff6b6b', fontSize: '16px', fontWeight: 'bold' }}>
+            ⚠️ Unable to load historical data
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', textAlign: 'center', maxWidth: '500px' }}>
+            Historical data is currently unavailable. The system needs real observational data from sources like NASA CDDIS, NOAA SWPC, and GFZ Potsdam.
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: '8px' }}>
+            Note: Synthetic data display has been disabled to ensure data integrity
+          </div>
         </div>
       ) : null}
 
