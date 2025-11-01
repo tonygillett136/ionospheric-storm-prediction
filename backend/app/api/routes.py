@@ -160,9 +160,17 @@ async def get_trends(hours: int = 24, db: AsyncSession = Depends(get_db)):
         if not measurements:
             raise HTTPException(status_code=404, detail="No historical data found")
 
-        # Format data for frontend
+        # Format data for frontend (filter out fill values from NASA OMNI)
         data = []
         for m in measurements:
+            # Skip records with fill/invalid values
+            # Real Kp ranges from 0-9, any value > 9 indicates bad data
+            # IMF Bz fill value is 999.9
+            if m.kp_index is None or m.kp_index > 9:
+                continue
+            if m.imf_bz and abs(m.imf_bz) > 900:
+                continue
+
             data.append({
                 "timestamp": m.timestamp.isoformat(),
                 "stormProbability": m.storm_probability or 0,
