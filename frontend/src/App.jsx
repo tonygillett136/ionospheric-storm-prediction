@@ -237,29 +237,6 @@ function App() {
         </div>
       </header>
 
-      {/* Data Source Warning Banner */}
-      <div style={{
-        maxWidth: '1600px',
-        margin: '0 auto 20px auto',
-        background: 'rgba(255, 152, 0, 0.1)',
-        border: '2px solid rgba(255, 152, 0, 0.5)',
-        borderRadius: '12px',
-        padding: '16px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px'
-      }}>
-        <div style={{ fontSize: '24px' }}>⚠️</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#ff9800' }}>
-            DEMO MODE - Synthetic Training Data
-          </div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
-            The ML model was trained on synthetically generated data. For production use, the system requires real observational data from NASA CDDIS (TEC), NOAA SWPC (geomagnetic indices), and GFZ Potsdam (Kp/Dst indices). Predictions should not be used for operational decision-making.
-          </div>
-        </div>
-      </div>
-
       <main style={{ maxWidth: '1600px', margin: '0 auto' }}>
         {/* Dashboard View */}
         {activeView === 'dashboard' && (
