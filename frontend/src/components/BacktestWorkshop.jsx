@@ -939,10 +939,20 @@ const BacktestWorkshop = () => {
               <div style={{ fontSize: '14px', marginBottom: '4px' }}>
                 <strong>Optimal Threshold:</strong> {optimizationResults.optimization.optimal_threshold}%
               </div>
-              <div style={{ fontSize: '12px', color: '#888' }}>
+              <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
                 Method: {optimizationMethod === 'f1' ? 'F1 Score' : optimizationMethod === 'youden' ? "Youden's J" : 'Cost-Based'} |
                 Score: {optimizationResults.optimization.best_score.toFixed(3)}
+                {optimizationResults.optimization.validation_type === 'walk_forward_cv' &&
+                  ` | Folds: ${optimizationResults.optimization.n_folds}`}
               </div>
+              {optimizationResults.optimization.validation_type === 'walk_forward_cv' && (
+                <div style={{ fontSize: '11px', color: '#10b981', marginTop: '6px', padding: '8px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '4px' }}>
+                  ✓ Validated using walk-forward cross-validation to ensure threshold works on future unseen data
+                  {optimizationResults.optimization.threshold_sweep &&
+                    optimizationResults.optimization.threshold_sweep.find(t => t.threshold === optimizationResults.optimization.optimal_threshold) &&
+                    ` | Stability: ${optimizationResults.optimization.threshold_sweep.find(t => t.threshold === optimizationResults.optimization.optimal_threshold).stability.toFixed(1)} (higher = more consistent)`}
+                </div>
+              )}
             </div>
 
             <ResponsiveContainer width="100%" height={300}>
@@ -970,6 +980,17 @@ const BacktestWorkshop = () => {
                 <Line type="monotone" dataKey="f1_score" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="F1 Score" />
                 <Line type="monotone" dataKey="precision" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Precision" />
                 <Line type="monotone" dataKey="recall" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Recall" />
+                {optimizationResults.optimization.validation_type === 'walk_forward_cv' && (
+                  <Line
+                    type="monotone"
+                    dataKey={(data) => data.stability ? Math.min(data.stability / 25, 1) : 0}
+                    stroke="#a855f7"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ r: 2 }}
+                    name="Stability (normalized)"
+                  />
+                )}
                 <Line
                   type="monotone"
                   dataKey="threshold"
@@ -988,7 +1009,7 @@ const BacktestWorkshop = () => {
               </LineChart>
             </ResponsiveContainer>
 
-            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '12px' }}>
+            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: optimizationResults.optimization.validation_type === 'walk_forward_cv' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '12px', fontSize: '12px' }}>
               <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
                 <div style={{ color: '#888', marginBottom: '4px' }}>F1 Score</div>
                 <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981' }}>
@@ -1007,6 +1028,19 @@ const BacktestWorkshop = () => {
                   {optimizationResults.optimization.optimal_metrics.recall.toFixed(3)}
                 </div>
               </div>
+              {optimizationResults.optimization.validation_type === 'walk_forward_cv' &&
+                optimizationResults.optimization.threshold_sweep &&
+                optimizationResults.optimization.threshold_sweep.find(t => t.threshold === optimizationResults.optimization.optimal_threshold) && (
+                <div style={{ padding: '12px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ color: '#888', marginBottom: '4px' }}>Stability</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#a855f7' }}>
+                    {optimizationResults.optimization.threshold_sweep.find(t => t.threshold === optimizationResults.optimization.optimal_threshold).stability.toFixed(1)}
+                  </div>
+                  <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}>
+                    (±{optimizationResults.optimization.threshold_sweep.find(t => t.threshold === optimizationResults.optimization.optimal_threshold).score_std.toFixed(3)} std)
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

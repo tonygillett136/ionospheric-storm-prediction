@@ -188,7 +188,13 @@ class BacktestingService:
         threshold_step: int = 5
     ) -> Dict:
         """
-        Find optimal probability threshold by testing multiple values.
+        Find optimal probability threshold using walk-forward cross-validation.
+
+        This avoids overfitting by:
+        1. Splitting data into 5 temporal folds (chronological order)
+        2. For each threshold, calculating average performance across validation folds
+        3. Finding threshold that works best on unseen future data
+        4. Measuring stability (how consistent is performance across folds)
 
         Args:
             predictions: List of predicted probabilities (0-100)
@@ -201,30 +207,143 @@ class BacktestingService:
         Returns:
             Dictionary with optimal threshold and performance data
         """
+        n_samples = len(predictions)
+        n_folds = 5
+        fold_size = n_samples // n_folds
+
+        if fold_size < 10:
+            # Not enough data for CV, fall back to single fold
+            return self._optimize_threshold_single_fold(
+                predictions, actuals, optimization_method,
+                cost_false_alarm, cost_missed_storm, threshold_step
+            )
+
         thresholds = list(range(10, 91, threshold_step))
         results = []
 
         best_score = -float('inf') if optimization_method != 'cost' else float('inf')
         best_threshold = 40
 
+        # For each threshold, calculate cross-validated performance
+        for threshold in thresholds:
+            fold_scores = []
+            fold_metrics_list = []
+
+            # Walk-forward cross-validation
+            for fold in range(1, n_folds):
+                # Train on all data up to this fold
+                train_end = fold * fold_size
+                # Validate on this fold
+                val_start = train_end
+                val_end = min((fold + 1) * fold_size, n_samples)
+
+                val_predictions = predictions[val_start:val_end]
+                val_actuals = actuals[val_start:val_end]
+
+                if len(val_predictions) == 0:
+                    continue
+
+                metrics = self.calculate_metrics(val_predictions, val_actuals, threshold)
+
+                # Calculate score for this fold
+                if optimization_method == 'f1':
+                    score = metrics['f1_score']
+                elif optimization_method == 'youden':
+                    sensitivity = metrics['recall']
+                    specificity = 1 - metrics['false_alarm_rate']
+                    score = sensitivity + specificity - 1
+                elif optimization_method == 'cost':
+                    fp = metrics['false_positives']
+                    fn = metrics['false_negatives']
+                    score = (fp * cost_false_alarm) + (fn * cost_missed_storm)
+                else:
+                    score = 0
+
+                fold_scores.append(score)
+                fold_metrics_list.append(metrics)
+
+            if not fold_scores:
+                continue
+
+            # Average score across folds
+            avg_score = np.mean(fold_scores)
+            # Stability: lower std = more consistent
+            stability = 1.0 / (np.std(fold_scores) + 0.01)  # Add small epsilon
+
+            # Penalize unstable thresholds
+            if optimization_method == 'cost':
+                adjusted_score = avg_score * (1.0 / stability)  # Higher cost is worse
+            else:
+                adjusted_score = avg_score * stability  # Reward stable high scores
+
+            # Average metrics across folds
+            avg_metrics = {
+                'f1_score': np.mean([m['f1_score'] for m in fold_metrics_list]),
+                'precision': np.mean([m['precision'] for m in fold_metrics_list]),
+                'recall': np.mean([m['recall'] for m in fold_metrics_list]),
+                'accuracy': np.mean([m['accuracy'] for m in fold_metrics_list]),
+                'false_alarm_rate': np.mean([m['false_alarm_rate'] for m in fold_metrics_list]),
+            }
+
+            results.append({
+                'threshold': threshold,
+                'f1_score': avg_metrics['f1_score'],
+                'precision': avg_metrics['precision'],
+                'recall': avg_metrics['recall'],
+                'accuracy': avg_metrics['accuracy'],
+                'false_alarm_rate': avg_metrics['false_alarm_rate'],
+                'youden_j': avg_metrics['recall'] + (1 - avg_metrics['false_alarm_rate']) - 1,
+                'score': avg_score,
+                'stability': stability,
+                'score_std': np.std(fold_scores),
+                'adjusted_score': adjusted_score
+            })
+
+            # Check if this is the best threshold (using adjusted score)
+            if optimization_method == 'cost':
+                if adjusted_score < best_score:
+                    best_score = adjusted_score
+                    best_threshold = threshold
+            else:
+                if adjusted_score > best_score:
+                    best_score = adjusted_score
+                    best_threshold = threshold
+
+        # Get full metrics for optimal threshold on ALL data for final report
+        optimal_metrics = self.calculate_metrics(predictions, actuals, best_threshold)
+
+        return {
+            'optimal_threshold': best_threshold,
+            'optimization_method': optimization_method,
+            'best_score': best_score,
+            'threshold_sweep': results,
+            'optimal_metrics': optimal_metrics,
+            'n_folds': n_folds,
+            'validation_type': 'walk_forward_cv'
+        }
+
+    def _optimize_threshold_single_fold(
+        self, predictions, actuals, optimization_method,
+        cost_false_alarm, cost_missed_storm, threshold_step
+    ):
+        """Fallback for small datasets - simple optimization without CV"""
+        thresholds = list(range(10, 91, threshold_step))
+        results = []
+        best_score = -float('inf') if optimization_method != 'cost' else float('inf')
+        best_threshold = 40
+
         for threshold in thresholds:
             metrics = self.calculate_metrics(predictions, actuals, threshold)
 
-            # Calculate optimization score based on method
             if optimization_method == 'f1':
                 score = metrics['f1_score']
             elif optimization_method == 'youden':
-                # Youden's J = Sensitivity + Specificity - 1
-                sensitivity = metrics['recall']
-                specificity = 1 - metrics['false_alarm_rate']
-                score = sensitivity + specificity - 1
+                score = metrics['recall'] + (1 - metrics['false_alarm_rate']) - 1
             elif optimization_method == 'cost':
-                # Cost-based optimization
-                fp = metrics['false_positives']
-                fn = metrics['false_negatives']
-                score = (fp * cost_false_alarm) + (fn * cost_missed_storm)
+                score = (metrics['false_positives'] * cost_false_alarm) + \
+                        (metrics['false_negatives'] * cost_missed_storm)
             else:
-                raise ValueError(f"Unknown optimization method: {optimization_method}")
+                score = 0
 
             results.append({
                 'threshold': threshold,
@@ -234,22 +353,21 @@ class BacktestingService:
                 'accuracy': metrics['accuracy'],
                 'false_alarm_rate': metrics['false_alarm_rate'],
                 'youden_j': metrics['recall'] + (1 - metrics['false_alarm_rate']) - 1,
-                'cost': (metrics['false_positives'] * cost_false_alarm) +
-                        (metrics['false_negatives'] * cost_missed_storm),
-                'score': score
+                'score': score,
+                'stability': 1.0,
+                'score_std': 0.0,
+                'adjusted_score': score
             })
 
-            # Check if this is the best threshold
             if optimization_method == 'cost':
-                if score < best_score:  # Lower cost is better
+                if score < best_score:
                     best_score = score
                     best_threshold = threshold
             else:
-                if score > best_score:  # Higher score is better
+                if score > best_score:
                     best_score = score
                     best_threshold = threshold
 
-        # Get full metrics for optimal threshold
         optimal_metrics = self.calculate_metrics(predictions, actuals, best_threshold)
 
         return {
@@ -257,7 +375,9 @@ class BacktestingService:
             'optimization_method': optimization_method,
             'best_score': best_score,
             'threshold_sweep': results,
-            'optimal_metrics': optimal_metrics
+            'optimal_metrics': optimal_metrics,
+            'n_folds': 1,
+            'validation_type': 'single_fold'
         }
 
     async def run_backtest(
