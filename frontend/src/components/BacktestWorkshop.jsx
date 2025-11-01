@@ -785,23 +785,53 @@ const BacktestWorkshop = () => {
             </div>
 
             {/* Optimization Method Selector */}
-            <div style={{ marginBottom: '8px', display: 'flex', gap: '8px', fontSize: '12px' }}>
-              <label style={{ color: '#888' }}>Method:</label>
-              {[
-                { value: 'f1', label: 'F1 Score' },
-                { value: 'youden', label: "Youden's J" },
-                { value: 'cost', label: 'Cost-Based' }
-              ].map(method => (
-                <label key={method.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    value={method.value}
-                    checked={optimizationMethod === method.value}
-                    onChange={(e) => setOptimizationMethod(e.target.value)}
-                  />
-                  <span>{method.label}</span>
-                </label>
-              ))}
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ color: '#888', fontSize: '12px', marginBottom: '6px', display: 'block' }}>Optimization Method:</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                {[
+                  {
+                    value: 'f1',
+                    label: 'F1 Score',
+                    description: 'Best balance between precision and recall. Recommended for general use.'
+                  },
+                  {
+                    value: 'youden',
+                    label: "Youden's J",
+                    description: 'Maximizes True Positive Rate + True Negative Rate. Best for ROC optimization.'
+                  },
+                  {
+                    value: 'cost',
+                    label: 'Cost-Based',
+                    description: 'Minimizes cost where missed storms are 5x more expensive than false alarms.'
+                  }
+                ].map(method => (
+                  <label
+                    key={method.value}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      background: optimizationMethod === method.value ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)',
+                      borderRadius: '6px',
+                      border: `1px solid ${optimizationMethod === method.value ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)'}`
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      value={method.value}
+                      checked={optimizationMethod === method.value}
+                      onChange={(e) => setOptimizationMethod(e.target.value)}
+                      style={{ marginTop: '2px' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '500', marginBottom: '2px' }}>{method.label}</div>
+                      <div style={{ color: '#888', fontSize: '11px' }}>{method.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
