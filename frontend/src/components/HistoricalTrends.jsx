@@ -53,7 +53,7 @@ const HistoricalTrends = () => {
     // Format based on period
     return rawData.map((item, idx) => ({
       timestamp: item.timestamp,
-      stormProbability: (item.storm_probability || 0) * 100,
+      stormProbability: item.stormProbability || 0, // Already 0-100 from API
       kpIndex: item.kp_index || 0,
       tecMean: item.tec_mean || 0,
       solarWind: item.solar_wind_speed || 0,
