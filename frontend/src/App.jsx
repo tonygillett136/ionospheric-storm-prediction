@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import StormGauge from './components/StormGauge';
+import DualHorizonForecast from './components/DualHorizonForecast';
 import ParameterCard from './components/ParameterCard';
 import TimelineChart from './components/TimelineChart';
 import CurrentConditions from './components/CurrentConditions';
@@ -253,12 +254,9 @@ function App() {
                 <Globe3D tecData={tecData} />
               </div>
 
-              {/* Storm Gauge */}
+              {/* Storm Forecast */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <StormGauge
-                  probability={prediction?.storm_probability_24h || 0}
-                  riskLevel={prediction?.risk_level || 'unknown'}
-                />
+                <DualHorizonForecast prediction={prediction} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{
                     background: 'rgba(0, 20, 40, 0.6)',
