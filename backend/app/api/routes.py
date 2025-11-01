@@ -306,6 +306,16 @@ class BacktestRequest(BaseModel):
     model_version: str = 'v1'  # 'v1' or 'v2'
 
 
+class OptimizeThresholdRequest(BaseModel):
+    start_date: str  # ISO format
+    end_date: str  # ISO format
+    optimization_method: str = 'f1'  # 'f1', 'youden', or 'cost'
+    cost_false_alarm: float = 1.0
+    cost_missed_storm: float = 5.0
+    sample_interval_hours: int = 1
+    model_version: str = 'v1'  # 'v1' or 'v2'
+
+
 @router.post("/backtest/run")
 async def run_backtest(request: BacktestRequest, db: AsyncSession = Depends(get_db)):
     """
@@ -351,6 +361,83 @@ async def run_backtest(request: BacktestRequest, db: AsyncSession = Depends(get_
     except Exception as e:
         logger.error(f"Error running backtest: {e}")
         raise HTTPException(status_code=500, detail=f"Backtest failed: {str(e)}")
+
+
+@router.post("/backtest/optimize-threshold")
+async def optimize_threshold(request: OptimizeThresholdRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Find optimal probability threshold by testing multiple values.
+
+    Optimization methods:
+    - 'f1': Maximize F1 score (balance of precision and recall)
+    - 'youden': Maximize Youden's J statistic (sensitivity + specificity - 1)
+    - 'cost': Minimize cost (weighted combination of false alarms and missed storms)
+
+    Parameters:
+    - model_version: 'v1' (original) or 'v2' (enhanced with attention) - default 'v1'
+    """
+    try:
+        # Parse dates
+        start_date = datetime.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        end_date = datetime.fromisoformat(request.end_date.replace('Z', '+00:00'))
+
+        # Validate date range
+        if start_date >= end_date:
+            raise HTTPException(status_code=400, detail="Start date must be before end date")
+
+        duration_days = (end_date - start_date).days
+        if duration_days < 2:
+            raise HTTPException(status_code=400, detail="Minimum optimization period is 2 days")
+
+        if duration_days > 365:
+            raise HTTPException(status_code=400, detail="Maximum optimization period is 365 days")
+
+        logger.info(f"Optimizing threshold from {start_date} to {end_date} using {request.optimization_method} method")
+
+        # Run backtest first to get predictions and actuals
+        backtesting_service = BacktestingService(model_version=request.model_version)
+
+        # Use threshold=40 for initial run (will be optimized)
+        backtest_results = await backtesting_service.run_backtest(
+            db,
+            start_date,
+            end_date,
+            storm_threshold=40.0,  # Initial threshold
+            sample_interval_hours=request.sample_interval_hours
+        )
+
+        # Extract predictions and actuals
+        predictions = [p['predicted_probability'] for p in backtest_results['predictions']]
+        actuals = [p['actual_probability'] for p in backtest_results['predictions']]
+
+        # Optimize threshold
+        optimization_results = backtesting_service.optimize_threshold(
+            predictions=predictions,
+            actuals=actuals,
+            optimization_method=request.optimization_method,
+            cost_false_alarm=request.cost_false_alarm,
+            cost_missed_storm=request.cost_missed_storm,
+            threshold_step=5
+        )
+
+        return {
+            'metadata': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'duration_days': duration_days,
+                'optimization_method': request.optimization_method,
+                'model_version': request.model_version,
+                'sample_interval_hours': request.sample_interval_hours,
+                'total_predictions': len(predictions)
+            },
+            'optimization': optimization_results
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error optimizing threshold: {e}")
+        raise HTTPException(status_code=500, detail=f"Threshold optimization failed: {str(e)}")
 
 
 @router.get("/backtest/storm-events")

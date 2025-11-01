@@ -178,6 +178,88 @@ class BacktestingService:
             'total_storms_predicted': int(np.sum(pred_storm))
         }
 
+    def optimize_threshold(
+        self,
+        predictions: List[float],
+        actuals: List[float],
+        optimization_method: str = 'f1',
+        cost_false_alarm: float = 1.0,
+        cost_missed_storm: float = 5.0,
+        threshold_step: int = 5
+    ) -> Dict:
+        """
+        Find optimal probability threshold by testing multiple values.
+
+        Args:
+            predictions: List of predicted probabilities (0-100)
+            actuals: List of actual probabilities (0-100)
+            optimization_method: 'f1', 'youden', or 'cost'
+            cost_false_alarm: Cost of false alarm (for cost method)
+            cost_missed_storm: Cost of missed storm (for cost method)
+            threshold_step: Step size for threshold sweep (default 5%)
+
+        Returns:
+            Dictionary with optimal threshold and performance data
+        """
+        thresholds = list(range(10, 91, threshold_step))
+        results = []
+
+        best_score = -float('inf') if optimization_method != 'cost' else float('inf')
+        best_threshold = 40
+
+        for threshold in thresholds:
+            metrics = self.calculate_metrics(predictions, actuals, threshold)
+
+            # Calculate optimization score based on method
+            if optimization_method == 'f1':
+                score = metrics['f1_score']
+            elif optimization_method == 'youden':
+                # Youden's J = Sensitivity + Specificity - 1
+                sensitivity = metrics['recall']
+                specificity = 1 - metrics['false_alarm_rate']
+                score = sensitivity + specificity - 1
+            elif optimization_method == 'cost':
+                # Cost-based optimization
+                fp = metrics['false_positives']
+                fn = metrics['false_negatives']
+                score = (fp * cost_false_alarm) + (fn * cost_missed_storm)
+            else:
+                raise ValueError(f"Unknown optimization method: {optimization_method}")
+
+            results.append({
+                'threshold': threshold,
+                'f1_score': metrics['f1_score'],
+                'precision': metrics['precision'],
+                'recall': metrics['recall'],
+                'accuracy': metrics['accuracy'],
+                'false_alarm_rate': metrics['false_alarm_rate'],
+                'youden_j': metrics['recall'] + (1 - metrics['false_alarm_rate']) - 1,
+                'cost': (metrics['false_positives'] * cost_false_alarm) +
+                        (metrics['false_negatives'] * cost_missed_storm),
+                'score': score
+            })
+
+            # Check if this is the best threshold
+            if optimization_method == 'cost':
+                if score < best_score:  # Lower cost is better
+                    best_score = score
+                    best_threshold = threshold
+            else:
+                if score > best_score:  # Higher score is better
+                    best_score = score
+                    best_threshold = threshold
+
+        # Get full metrics for optimal threshold
+        optimal_metrics = self.calculate_metrics(predictions, actuals, best_threshold)
+
+        return {
+            'optimal_threshold': best_threshold,
+            'optimization_method': optimization_method,
+            'best_score': best_score,
+            'threshold_sweep': results,
+            'optimal_metrics': optimal_metrics
+        }
+
     async def run_backtest(
         self,
         session: AsyncSession,

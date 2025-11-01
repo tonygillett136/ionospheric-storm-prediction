@@ -161,10 +161,26 @@ async def load_training_data(start_date: datetime, end_date: datetime):
             session, start_date, end_date
         )
 
+        # Filter out NASA OMNI fill values and corrupted data
+        # Real Kp ranges 0-9, IMF Bz should be < 900
+        filtered_measurements = []
+        skipped_count = 0
+        for m in measurements:
+            # Skip records with fill/invalid values
+            if m.kp_index is None or m.kp_index > 9:
+                skipped_count += 1
+                continue
+            if m.imf_bz and abs(m.imf_bz) > 900:
+                skipped_count += 1
+                continue
+            filtered_measurements.append(m)
+
+        logger.info(f"Filtered out {skipped_count} records with fill values ({skipped_count/len(measurements)*100:.1f}%)")
+
         # CRITICAL FIX: Resample to exactly 1 measurement per hour
         # Group by hour and take the first measurement in each hour
         hourly_measurements = {}
-        for m in measurements:
+        for m in filtered_measurements:
             # Create hour key (year-month-day-hour)
             hour_key = m.timestamp.replace(minute=0, second=0, microsecond=0)
             if hour_key not in hourly_measurements:
@@ -173,7 +189,7 @@ async def load_training_data(start_date: datetime, end_date: datetime):
         # Convert back to sorted list
         resampled = sorted(hourly_measurements.values(), key=lambda x: x.timestamp)
 
-        logger.info(f"Resampled {len(measurements)} measurements to {len(resampled)} hourly samples")
+        logger.info(f"Resampled {len(filtered_measurements)} clean measurements to {len(resampled)} hourly samples")
         return resampled
 
 

@@ -29,6 +29,12 @@ const BacktestWorkshop = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Threshold optimization state
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationResults, setOptimizationResults] = useState(null);
+  const [optimizationMethod, setOptimizationMethod] = useState('f1'); // 'f1', 'youden', 'cost'
+  const [showOptimizationChart, setShowOptimizationChart] = useState(false);
+
   // Quick preset date ranges
   const applyPreset = (preset) => {
     const end = new Date();
@@ -84,6 +90,38 @@ const BacktestWorkshop = () => {
       setError(detail);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const optimizeThreshold = async () => {
+    if (!startDate || !endDate) {
+      setError('Please select both start and end dates');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setError(null);
+    setOptimizationResults(null);
+
+    try {
+      const data = await api.post('/backtest/optimize-threshold', {
+        start_date: startDate + 'T00:00:00',
+        end_date: endDate + 'T00:00:00',
+        optimization_method: optimizationMethod,
+        cost_false_alarm: 1.0,
+        cost_missed_storm: 5.0,
+        sample_interval_hours: sampleInterval
+      });
+
+      setOptimizationResults(data);
+      setStormThreshold(data.optimization.optimal_threshold);
+      setShowOptimizationChart(true);
+    } catch (err) {
+      console.error('Optimization error:', err);
+      const detail = err.response?.data?.detail || err.message || 'Failed to optimize threshold';
+      setError(detail);
+    } finally {
+      setIsOptimizing(false);
     }
   };
 
@@ -716,9 +754,56 @@ const BacktestWorkshop = () => {
 
           {/* Storm Threshold */}
           <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Storm Threshold: {stormThreshold}%
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>
+                Storm Threshold: {stormThreshold}%
+                {optimizationResults && (
+                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#10b981', fontWeight: 'normal' }}>
+                    ⭐ Optimized
+                  </span>
+                )}
+              </label>
+              <button
+                onClick={optimizeThreshold}
+                disabled={isOptimizing || !startDate || !endDate}
+                style={{
+                  padding: '6px 12px',
+                  background: isOptimizing ? '#6b7280' : '#10b981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isOptimizing ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {isOptimizing ? '⏳ Optimizing...' : '🎯 Auto-Optimize'}
+              </button>
+            </div>
+
+            {/* Optimization Method Selector */}
+            <div style={{ marginBottom: '8px', display: 'flex', gap: '8px', fontSize: '12px' }}>
+              <label style={{ color: '#888' }}>Method:</label>
+              {[
+                { value: 'f1', label: 'F1 Score' },
+                { value: 'youden', label: "Youden's J" },
+                { value: 'cost', label: 'Cost-Based' }
+              ].map(method => (
+                <label key={method.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    value={method.value}
+                    checked={optimizationMethod === method.value}
+                    onChange={(e) => setOptimizationMethod(e.target.value)}
+                  />
+                  <span>{method.label}</span>
+                </label>
+              ))}
+            </div>
+
             <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
               Probability threshold to classify a prediction as a storm. Lower = more sensitive (more detections, possibly more false alarms).
             </div>
@@ -792,6 +877,107 @@ const BacktestWorkshop = () => {
             fontSize: '14px'
           }}>
             {error}
+          </div>
+        )}
+
+        {/* Threshold Optimization Chart */}
+        {showOptimizationChart && optimizationResults && (
+          <div style={{
+            marginTop: '20px',
+            background: 'rgba(0, 20, 40, 0.6)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid rgba(74, 144, 226, 0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', margin: 0 }}>📊 Threshold Performance Analysis</h3>
+              <button
+                onClick={() => setShowOptimizationChart(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#888',
+                  cursor: 'pointer',
+                  fontSize: '20px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+                <strong>Optimal Threshold:</strong> {optimizationResults.optimization.optimal_threshold}%
+              </div>
+              <div style={{ fontSize: '12px', color: '#888' }}>
+                Method: {optimizationMethod === 'f1' ? 'F1 Score' : optimizationMethod === 'youden' ? "Youden's J" : 'Cost-Based'} |
+                Score: {optimizationResults.optimization.best_score.toFixed(3)}
+              </div>
+            </div>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={optimizationResults.optimization.threshold_sweep}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis
+                  dataKey="threshold"
+                  stroke="rgba(255,255,255,0.5)"
+                  label={{ value: 'Threshold (%)', position: 'insideBottom', offset: -5, style: { fill: 'rgba(255,255,255,0.7)' } }}
+                />
+                <YAxis
+                  stroke="rgba(255,255,255,0.5)"
+                  domain={[0, 1]}
+                  label={{ value: 'Score', angle: -90, position: 'insideLeft', style: { fill: 'rgba(255,255,255,0.7)' } }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(0, 20, 40, 0.95)',
+                    border: '1px solid rgba(74, 144, 226, 0.5)',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Line type="monotone" dataKey="f1_score" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="F1 Score" />
+                <Line type="monotone" dataKey="precision" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Precision" />
+                <Line type="monotone" dataKey="recall" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Recall" />
+                <Line
+                  type="monotone"
+                  dataKey="threshold"
+                  stroke="transparent"
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (payload.threshold === optimizationResults.optimization.optimal_threshold) {
+                      return (
+                        <circle cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />
+                      );
+                    }
+                    return null;
+                  }}
+                  name="Optimal"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+
+            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '12px' }}>
+              <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ color: '#888', marginBottom: '4px' }}>F1 Score</div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981' }}>
+                  {optimizationResults.optimization.optimal_metrics.f1_score.toFixed(3)}
+                </div>
+              </div>
+              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ color: '#888', marginBottom: '4px' }}>Precision</div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#3b82f6' }}>
+                  {optimizationResults.optimization.optimal_metrics.precision.toFixed(3)}
+                </div>
+              </div>
+              <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ color: '#888', marginBottom: '4px' }}>Recall</div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f59e0b' }}>
+                  {optimizationResults.optimization.optimal_metrics.recall.toFixed(3)}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
