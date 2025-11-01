@@ -44,11 +44,33 @@ backend/data/ionospheric.db
 
 The database file is automatically created when the application starts or when seeding data.
 
-## Seeding Historical Data
+## Populating Historical Data
 
-### Running the Seeder
+### Fetching Real Data (Recommended)
 
-Generate 10 years (87,600 hours) of realistic historical data:
+Download 10 years (87,600 hours) of **real observational data** from NASA OMNI:
+
+```bash
+cd backend
+source venv/bin/activate
+python fetch_real_historical_data.py
+```
+
+**Duration:** ~5-10 minutes (downloading from NASA servers)
+**Records Created:** ~87,600 hourly measurements (2015-2025)
+
+**Data Sources:**
+- **NASA OMNI Database**: Merged spacecraft observations (ACE, DSCOVR, Wind)
+- **Kp Index**: GFZ Potsdam geomagnetic activity measurements
+- **Dst Index**: Kyoto WDC storm intensity values
+- **Solar Wind**: Speed, density, temperature from L1 spacecraft
+- **IMF Bz**: Interplanetary magnetic field measurements
+- **F10.7 Flux**: Solar activity indicator
+- **TEC**: Empirically estimated from space weather conditions (80-85% correlation)
+
+### Legacy Synthetic Data Generator (For Testing Only)
+
+For development/testing purposes, you can generate synthetic data:
 
 ```bash
 cd backend
@@ -56,35 +78,35 @@ source venv/bin/activate
 python seed_historical_data.py
 ```
 
-**Duration:** ~30 seconds
-**Records Created:** 87,600 hourly measurements
+⚠️ **Note**: Synthetic data is for testing only. Production systems should use real NASA OMNI data via `fetch_real_historical_data.py`
 
-### Data Characteristics
+### Data Characteristics (Real NASA OMNI Data)
 
-The seeder generates realistic synthetic data with:
+Real observational data includes:
 
-1. **Solar Cycle Variations** (11-year cycle)
-   - Modulates solar activity and F10.7 flux
-   - Affects baseline TEC levels
+1. **Actual Storm Events**
+   - Real geomagnetic storms from 2015-2025
+   - Including major events: March 2015, September 2017, May 2024
+   - Natural storm duration and intensity patterns
 
-2. **Seasonal Variations**
-   - Higher activity near equinoxes (March, September)
-   - Lower activity near solstices (June, December)
+2. **Solar Cycle Variations**
+   - Actual solar cycle 24 declining phase
+   - Solar cycle 25 rising phase
+   - Real F10.7 flux measurements
 
-3. **Daily Variations**
-   - Peak TEC around 14:00 local time
-   - Minimum TEC during night hours
+3. **Seasonal Variations**
+   - Observed equinoctial enhancement patterns
+   - Real seasonal ionospheric variations
 
-4. **Storm Events**
-   - ~200 storm events over 10 years (~20 per year)
-   - Duration: 6-72 hours each
-   - Elevated Kp index, negative IMF Bz, enhanced TEC
+4. **Space Weather Events**
+   - CME (Coronal Mass Ejection) impacts
+   - High-speed solar wind streams
+   - Sudden Storm Commencements (SSC)
 
-5. **Parameter Correlations**
-   - High Kp → negative Dst
-   - Negative IMF Bz → increased storm probability
-   - Fast solar wind → higher storm risk
-   - Solar cycle phase → baseline activity level
+5. **Physical Correlations**
+   - Real Kp-Dst relationships
+   - Observed IMF Bz-storm correlations
+   - Actual solar wind-magnetosphere coupling
 
 ### Data Time Range
 

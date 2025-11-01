@@ -40,11 +40,12 @@ This system provides critical space weather forecasting for applications in:
 - **Historical Trends** - View patterns over 24h/week/month/year/10 years
 - **Live Parameters** - Kp index, solar wind, IMF Bz, F10.7 flux
 
-### 💾 Persistent Data Storage
-- **SQLite Database** - 10 years of historical measurements (87,600+ hours)
-- **Alembic Migrations** - Professional database schema management
-- **Indexed Queries** - Fast retrieval across any time range
-- **Realistic Patterns** - Solar cycle, seasonal variations, storm events
+### 💾 Real Observational Data
+- **NASA OMNI Database** - 10 years of real measurements (2015-2025, 87,600+ hours)
+- **Real Storm Events** - Actual geomagnetic storms including major events
+- **SQLite Storage** - Professional database with Alembic migrations
+- **Fast Queries** - Indexed retrieval across any time range
+- **Authoritative Sources** - GFZ Potsdam (Kp), Kyoto WDC (Dst), NASA spacecraft
 
 ### 📚 Educational Content
 - Comprehensive current conditions dashboard
@@ -61,8 +62,11 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Optional: Seed 10 years of historical data (~30 seconds)
-python seed_historical_data.py
+# Recommended: Download 10 years of real NASA OMNI data (~5-10 minutes)
+python fetch_real_historical_data.py
+
+# Alternative: Use synthetic test data (for development only)
+# python seed_historical_data.py
 
 python main.py
 \`\`\`

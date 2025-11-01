@@ -265,12 +265,13 @@ Get historical storm events within a date range.
 
 **Causes:**
 - Storm threshold doesn't match your expectations
-- Synthetic training data patterns may differ from test period
+- Model may perform differently during extreme or unusual space weather conditions
 
 **Solutions:**
 - Adjust storm threshold
 - Test multiple periods to understand model behavior
 - Export results and analyze patterns
+- Compare V1 vs V2 model performance
 
 ## Example Workflows
 
