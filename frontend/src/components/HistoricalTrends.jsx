@@ -7,7 +7,7 @@ import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 import api from '../services/api';
 
 const HistoricalTrends = () => {
-  const [period, setPeriod] = useState('24h'); // 24h, week, month, year, 10year
+  const [period, setPeriod] = useState('month'); // month, year, 10year (24h/week removed - no clean data)
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,10 +21,8 @@ const HistoricalTrends = () => {
     setError(null);
 
     try {
-      // Map period to hours
+      // Map period to hours (24h/week removed due to NASA OMNI fill values in recent data)
       const hoursMap = {
-        '24h': 24,
-        'week': 168,
         'month': 720,
         'year': 8760,
         '10year': 87600
@@ -170,7 +168,7 @@ const HistoricalTrends = () => {
 
         {/* Period Selector */}
         <div style={{ display: 'flex', gap: '8px' }}>
-          {['24h', 'week', 'month', 'year', '10year'].map(p => (
+          {['month', 'year', '10year'].map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
@@ -186,8 +184,7 @@ const HistoricalTrends = () => {
                 transition: 'all 0.2s'
               }}
             >
-              {p === '24h' ? '24 Hours' :
-               p === '10year' ? '10 Years' :
+              {p === '10year' ? '10 Years' :
                p.charAt(0).toUpperCase() + p.slice(1)}
             </button>
           ))}
