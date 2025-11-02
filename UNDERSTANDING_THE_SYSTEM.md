@@ -7,7 +7,7 @@
 
 ## The Problem: An Invisible Weather System
 
-Imagine there's a second weather system you've never heard of, 200 miles above your head, that can knock out GPS, disrupt radio communications, damage satellites, and even threaten power grids. Unlike regular weather, you can't see it, feel it, or predict it by looking at clouds.
+Imagine there's a second weather system you've never heard of, 320 kilometres above your head, that can knock out GPS, disrupt radio communications, damage satellites, and even threaten power grids. Unlike regular weather, you can't see it, feel it, or predict it by looking at clouds.
 
 This is the **ionosphere** - and when it gets stormy, billions of dollars of technology are at risk.
 
@@ -17,7 +17,7 @@ This system tries to predict those storms 24-48 hours in advance.
 
 ## What Actually Is the Ionosphere?
 
-Think of the ionosphere as an electrical ocean in the sky. Between 50 and 600 miles up, solar radiation strips electrons off atoms, creating a soup of electrically charged particles. This "plasma" layer does something useful: it reflects radio waves (which is how shortwave radio works) and affects GPS signals passing through it.
+Think of the ionosphere as an electrical ocean in the sky. Between 80 and 965 kilometres up, solar radiation strips electrons off atoms, creating a soup of electrically charged particles. This "plasma" layer does something useful: it reflects radio waves (which is how shortwave radio works) and affects GPS signals passing through it.
 
 **The key measurement**: Total Electron Content (TEC)
 - Measured in TECU (TEC Units)
@@ -25,7 +25,7 @@ Think of the ionosphere as an electrical ocean in the sky. Between 50 and 600 mi
 - Storm value: Can jump to 100+ TECU
 - Think of it like humidity for space weather
 
-When TEC spikes suddenly, GPS can be off by tens of meters instead of feet. Radio communications black out. Satellites experience extra drag and radiation. Power lines get induced currents that can trip transformers.
+When TEC spikes suddenly, GPS can be off by tens of metres instead of sub-metre precision. Radio communications black out. Satellites experience extra drag and radiation. Power lines get induced currents that can trip transformers.
 
 ---
 
@@ -49,7 +49,7 @@ This is an ionospheric storm. And we'd really like to know when they're coming.
 
 Unlike a hurricane that affects one region, ionospheric storms have:
 - **Different effects at different latitudes**: The poles and equator behave completely differently
-- **Different behavior day vs night**: The ionosphere basically disappears at night
+- **Different behaviour day vs night**: The ionosphere basically disappears at night
 - **Different patterns by season**: Spring and fall have more storms
 - **11-year solar cycles**: The Sun gets angrier and calmer on a decade-long rhythm
 
@@ -144,7 +144,7 @@ We added 8 features targeting what climatology does well (patterns) and what it 
 
 6. **High-latitude flag** - Auroral zones (55-75° magnetic latitude) behave uniquely during storms.
 
-These aren't random features - they're **informed by 60 years of ionospheric physics research**, targeting the known drivers of storm behavior.
+These aren't random features - they're **informed by 60 years of ionospheric physics research**, targeting the known drivers of storm behaviour.
 
 ---
 
