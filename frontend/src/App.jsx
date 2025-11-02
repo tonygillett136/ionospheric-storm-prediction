@@ -13,6 +13,7 @@ import HistoricalTrends from './components/HistoricalTrends';
 import Glossary from './components/Glossary';
 import Globe3D from './components/Globe3D';
 import BacktestWorkshop from './components/BacktestWorkshop';
+import ImpactDashboard from './components/ImpactDashboard';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -234,6 +235,23 @@ function App() {
             }}
           >
             🔬 Backtest Workshop
+          </button>
+          <button
+            onClick={() => setActiveView('impact')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'impact' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'impact' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'impact' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'impact' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            🎯 Impact Assessment
           </button>
         </div>
       </header>
@@ -469,6 +487,9 @@ function App() {
 
         {/* Backtest Workshop View */}
         {activeView === 'backtest' && <BacktestWorkshop />}
+
+        {/* Impact Assessment View */}
+        {activeView === 'impact' && <ImpactDashboard />}
       </main>
 
       <style>{`

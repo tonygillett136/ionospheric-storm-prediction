@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 from app.services.data_service import DataService
 from app.services.backtesting_service import BacktestingService
+from app.services.impact_assessment_service import ImpactAssessmentService
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -464,3 +465,54 @@ async def get_storm_events(
     except Exception as e:
         logger.error(f"Error getting storm events: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Impact Assessment endpoint
+@router.get("/impact-assessment")
+async def get_impact_assessment(
+    latitude: float = 45.0
+):
+    """
+    Get real-world impact assessment for current storm conditions.
+
+    Translates ionospheric storm predictions into actionable impacts for:
+    - GPS accuracy degradation
+    - HF radio propagation
+    - Satellite operations
+    - Power grid (GIC risk)
+
+    Parameters:
+    - latitude: Geographic latitude for regional effects (default: 45.0)
+    """
+    try:
+        if data_service is None or data_service.latest_prediction is None:
+            raise HTTPException(status_code=503, detail="Prediction data not available")
+
+        prediction = data_service.latest_prediction
+        latest_data = data_service.latest_data or {}
+
+        # Extract current conditions
+        probability_24h = prediction.get('storm_probability_24h', 0)
+        probability_48h = prediction.get('storm_probability_48h', 0)
+        kp_index = latest_data.get('kp_index', 3.0)
+        tec_mean = latest_data.get('tec_statistics', {}).get('mean', 20.0)
+        dst_index = latest_data.get('dst_index', 0)
+
+        # Calculate impacts
+        impact_service = ImpactAssessmentService()
+        impacts = impact_service.assess_impacts(
+            probability_24h=probability_24h,
+            probability_48h=probability_48h,
+            kp_index=kp_index,
+            tec_mean=tec_mean,
+            dst_index=dst_index,
+            latitude=latitude
+        )
+
+        return impacts
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error assessing impacts: {e}")
+        raise HTTPException(status_code=500, detail=f"Impact assessment failed: {str(e)}")
