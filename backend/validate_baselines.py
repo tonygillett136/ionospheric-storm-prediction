@@ -144,9 +144,10 @@ class BaselineValidator:
         # Get prediction from model
         prediction = await self.predictor.predict_storm(data_sequence)
 
-        # Extract TEC forecast (first value of 24h forecast array, denormalized)
-        tec_forecast_normalized = prediction.get('tec_forecast', [0.2])[0]  # First hour of 24h forecast
-        tec_forecast = tec_forecast_normalized * 100.0  # Denormalize (was divided by 100 in training)
+        # Extract TEC forecast (first value of 24h forecast array)
+        # Note: Model returns 'tec_forecast_24h' with values already denormalized (×100)
+        tec_forecast_array = prediction.get('tec_forecast_24h', [20.0])  # Fallback to 20 TECU
+        tec_forecast = tec_forecast_array[0]  # First hour of 24h forecast (already denormalized)
 
         return tec_forecast
 

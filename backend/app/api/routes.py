@@ -101,7 +101,7 @@ async def get_current_data():
 
 @router.get("/prediction")
 async def get_prediction():
-    """Get the latest storm prediction"""
+    """Get the latest storm prediction (V2.1 model only)"""
     if data_service is None:
         raise HTTPException(status_code=503, detail="Data service not initialized")
 
@@ -109,6 +109,91 @@ async def get_prediction():
         raise HTTPException(status_code=404, detail="No prediction available yet")
 
     return data_service.latest_prediction
+
+
+@router.get("/prediction/ensemble")
+async def get_ensemble_prediction(
+    climatology_weight: float = 0.7,
+    model_weight: float = 0.3,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get ensemble storm prediction combining climatology and V2.1 model.
+
+    Args:
+        climatology_weight: Weight for climatology forecast (default 0.7 = 70%)
+        model_weight: Weight for V2.1 model forecast (default 0.3 = 30%)
+
+    Returns:
+        Enhanced prediction with separate climatology, V2.1, and ensemble forecasts
+    """
+    from app.models.ensemble_predictor import EnsembleStormPredictor
+
+    if data_service is None:
+        raise HTTPException(status_code=503, detail="Data service not initialized")
+
+    if data_service.latest_data is None:
+        raise HTTPException(status_code=404, detail="No data available for prediction")
+
+    # Validate weights
+    if not (0.0 <= climatology_weight <= 1.0 and 0.0 <= model_weight <= 1.0):
+        raise HTTPException(status_code=400, detail="Weights must be between 0.0 and 1.0")
+
+    if abs(climatology_weight + model_weight - 1.0) > 0.01:
+        raise HTTPException(status_code=400, detail="Weights must sum to 1.0")
+
+    try:
+        # Initialize ensemble predictor
+        ensemble = EnsembleStormPredictor(
+            model_path="models/v2/best_model.keras",
+            climatology_weight=climatology_weight,
+            model_weight=model_weight
+        )
+
+        # Load climatology if not already loaded
+        if not ensemble.climatology_loaded:
+            await ensemble.load_climatology()
+
+        # Get recent historical data (last 24+ hours)
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=25)
+
+        historical_measurements = await HistoricalDataRepository.get_measurements_by_time_range(
+            db, start_time, end_time
+        )
+
+        if len(historical_measurements) < 24:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Insufficient historical data (need 24 hours, have {len(historical_measurements)})"
+            )
+
+        # Format data for ensemble predictor
+        historical_data = []
+        for m in historical_measurements[-24:]:  # Last 24 hours
+            historical_data.append({
+                'tec_statistics': {'mean': m.tec_mean, 'std': m.tec_std},
+                'kp_index': m.kp_index,
+                'dst_index': m.dst_index,
+                'solar_wind_params': {
+                    'speed': m.solar_wind_speed,
+                    'density': m.solar_wind_density
+                },
+                'imf_bz': m.imf_bz,
+                'f107_flux': m.f107_flux,
+                'timestamp': m.timestamp.isoformat(),
+                'latitude': 45.0,  # Default mid-latitude
+                'longitude': 0.0
+            })
+
+        # Get ensemble prediction with all components
+        prediction = await ensemble.predict_with_components(historical_data)
+
+        return prediction
+
+    except Exception as e:
+        logger.error(f"Ensemble prediction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Ensemble prediction failed: {str(e)}")
 
 
 @router.get("/tec/current")

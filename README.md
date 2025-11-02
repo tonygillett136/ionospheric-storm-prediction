@@ -21,6 +21,7 @@ This system provides critical space weather forecasting for applications in:
 - WebSocket streaming for instant updates
 
 ### 🤖 Advanced ML Prediction
+- **Ensemble Model** - Combines climatology and neural network strengths (default: 70% climatology + 30% V2.1)
 - **Enhanced BiLSTM-Attention** architecture with multi-head attention (V2.1)
 - **24 physics-informed features** including:
   - Magnetic latitude coordinates (AACGM-v2)
@@ -35,8 +36,8 @@ This system provides critical space weather forecasting for applications in:
   - TEC forecasting (24 hours)
   - Uncertainty estimation
 - **Risk classification** (Low/Moderate/Elevated/High/Severe)
-- **Rigorous validation** - 3.1% improvement vs climatology baseline (15.68 vs 16.18 TECU RMSE)
-- **Model versioning** - Compare V1 (CNN-LSTM) vs V2.1 (BiLSTM-Attention)
+- **Rigorous validation** - Climatology provides strong baseline (16.18 TECU RMSE)
+- **Model versioning** - V1 (CNN-LSTM), V2.1 (BiLSTM-Attention), Ensemble (Climatology + V2.1)
 
 ### 📊 Interactive Visualizations
 - **3D Globe** - Real-time TEC distribution on photo-realistic Earth
