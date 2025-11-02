@@ -89,11 +89,21 @@ TEC_climatology(doy, Kp) = Mean(TEC | day_of_year=doy, Kp_bin=⌊Kp⌋)
 
 ## API Usage
 
-### Endpoint
+### Primary Endpoint (Default: Ensemble)
+
+```
+GET /api/v1/prediction
+```
+
+Returns ensemble predictions by default (70% climatology + 30% V2.1). Add `?use_ensemble=false` for V2.1-only mode.
+
+### Custom Weighting Endpoint
 
 ```
 GET /api/v1/prediction/ensemble
 ```
+
+Allows custom weighting between climatology and V2.1 model.
 
 ### Parameters
 
@@ -284,14 +294,20 @@ Running comprehensive validation on 17,473 test forecasts (2023-2024).
 
 ---
 
-## Future Improvements
+## Implementation Status
+
+### ✅ Completed (November 2, 2025)
+
+1. **✅ Ensemble as default prediction** - `/api/v1/prediction` now returns ensemble predictions by default
+2. **✅ Frontend integration** - Main dashboard displays ensemble predictions, dedicated comparison tab available
+3. **✅ Custom weighting support** - `/api/v1/prediction/ensemble` endpoint with adjustable weights
+4. **✅ In-memory data integration** - Uses live collected data from data service
+5. **✅ Fallback mechanisms** - Automatic fallback to V2.1-only if insufficient data
 
 ### Short-term (Next Release)
 
 1. **Cache ensemble predictor** - Avoid reloading climatology/model on each request
-2. **Add ensemble to data service** - Integrate as primary forecaster
-3. **Frontend integration** - Display all three forecasts (climatology, V2.1, ensemble)
-4. **Validation completion** - Full ensemble validation results
+2. **Validation completion** - Full ensemble validation results on test set
 
 ### Medium-term
 

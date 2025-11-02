@@ -81,19 +81,49 @@ Get all current ionospheric conditions and predictions.
 
 #### `GET /prediction`
 
-Get the latest ionospheric storm prediction.
+Get the latest ionospheric storm prediction (ensemble model by default).
 
-**Response:**
+**Parameters:**
+- `use_ensemble` (query, boolean, default: true): Use ensemble prediction (70% climatology + 30% V2.1)
+
+**Example:**
+```bash
+# Default: Ensemble prediction
+GET /prediction
+
+# V2.1 model only
+GET /prediction?use_ensemble=false
+```
+
+**Response (Ensemble - default):**
 ```json
 {
-  "timestamp": "2025-10-23T21:00:00.000Z",
+  "timestamp": "2025-11-02T21:00:00.000Z",
+  "storm_probability_24h": 0.35,
+  "storm_probability_48h": 0.28,
+  "hourly_probabilities": [0.15, 0.18, 0.22, ..., 0.45],
+  "tec_forecast_24h": [22.1, 23.5, 24.8, ..., 26.2],
+  "climatology_forecast": [24.1, 24.5, 25.0, ..., 26.0],
+  "v2_forecast": [18.1, 20.5, 24.6, ..., 26.4],
+  "ensemble_method": "Climatology (70%) + V2.1 Model (30%)",
+  "risk_level_24h": "moderate",
+  "confidence_24h": 0.85,
+  "weights": {
+    "climatology": 0.7,
+    "v2_model": 0.3
+  }
+}
+```
+
+**Response (V2.1 only with use_ensemble=false):**
+```json
+{
+  "timestamp": "2025-11-02T21:00:00.000Z",
   "storm_probability_24h": 0.35,
   "hourly_probabilities": [0.15, 0.18, 0.22, ..., 0.45],
   "tec_forecast_24h": [22.1, 23.5, 24.8, ..., 26.2],
-  "risk_level": "moderate",
-  "max_probability": 0.45,
-  "average_probability": 0.32,
-  "model_version": "CNN-LSTM-v1.0"
+  "risk_level_24h": "moderate",
+  "model_version": "Enhanced-BiLSTM-Attention-v2.0"
 }
 ```
 
@@ -101,11 +131,38 @@ Get the latest ionospheric storm prediction.
 
 - `storm_probability_24h`: Overall probability of storm in next 24h (0-1)
 - `hourly_probabilities`: Array of 24 hourly probabilities
-- `tec_forecast_24h`: Array of 24 hourly TEC forecasts (TECU)
-- `risk_level`: Categorical risk level (low, moderate, elevated, high, severe)
-- `max_probability`: Maximum hourly probability
-- `average_probability`: Average of all hourly probabilities
-- `model_version`: Version identifier of the prediction model
+- `tec_forecast_24h`: Array of 24 hourly TEC forecasts (TECU) - ensemble weighted average
+- `climatology_forecast`: Climatology-only forecast (when ensemble enabled)
+- `v2_forecast`: V2.1 model-only forecast (when ensemble enabled)
+- `ensemble_method`: Description of weighting (when ensemble enabled)
+- `risk_level_24h`: Categorical risk level (low, moderate, elevated, high, severe)
+- `confidence_24h`: Confidence level (0-1)
+- `weights`: Ensemble weighting used (when ensemble enabled)
+- `model_version`: Version identifier (V2.1-only mode)
+
+#### `GET /prediction/ensemble`
+
+Get ensemble prediction with custom weighting.
+
+**Parameters:**
+- `climatology_weight` (query, float, default: 0.7): Weight for climatology (0.0-1.0)
+- `model_weight` (query, float, default: 0.3): Weight for V2.1 model (0.0-1.0)
+
+**Constraint:** `climatology_weight + model_weight = 1.0`
+
+**Example:**
+```bash
+# Default 70/30 weighting
+GET /prediction/ensemble
+
+# Custom 50/50 weighting
+GET /prediction/ensemble?climatology_weight=0.5&model_weight=0.5
+
+# Pure climatology
+GET /prediction/ensemble?climatology_weight=1.0&model_weight=0.0
+```
+
+**Response:** Same format as `/prediction` with ensemble enabled
 
 ---
 
