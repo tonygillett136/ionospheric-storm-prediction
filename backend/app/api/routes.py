@@ -484,9 +484,13 @@ async def get_impact_assessment(
     - Power grid (GIC risk)
 
     Parameters:
-    - latitude: Geographic latitude for regional effects (default: 45.0)
+    - latitude: Geographic latitude for regional effects (default: 45.0, range: -90 to 90)
     """
     try:
+        # Validate latitude
+        if not (-90 <= latitude <= 90):
+            raise HTTPException(status_code=400, detail="Latitude must be between -90 and 90")
+
         if data_service is None or data_service.latest_prediction is None:
             raise HTTPException(status_code=503, detail="Prediction data not available")
 
