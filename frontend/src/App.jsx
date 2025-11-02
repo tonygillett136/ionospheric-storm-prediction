@@ -14,6 +14,7 @@ import Glossary from './components/Glossary';
 import Globe3D from './components/Globe3D';
 import BacktestWorkshop from './components/BacktestWorkshop';
 import ImpactDashboard from './components/ImpactDashboard';
+import RegionalPrediction from './components/RegionalPrediction';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -253,6 +254,23 @@ function App() {
           >
             🎯 Impact Assessment
           </button>
+          <button
+            onClick={() => setActiveView('regional')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'regional' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'regional' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'regional' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'regional' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            📍 Regional Forecast
+          </button>
         </div>
       </header>
 
@@ -490,6 +508,9 @@ function App() {
 
         {/* Impact Assessment View */}
         {activeView === 'impact' && <ImpactDashboard />}
+
+        {/* Regional Prediction View */}
+        {activeView === 'regional' && <RegionalPrediction />}
       </main>
 
       <style>{`

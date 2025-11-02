@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from app.services.data_service import DataService
 from app.services.backtesting_service import BacktestingService
 from app.services.impact_assessment_service import ImpactAssessmentService
+from app.services.regional_prediction_service import RegionalPredictionService
+from app.services.alert_service import AlertService
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -516,3 +518,210 @@ async def get_impact_assessment(
     except Exception as e:
         logger.error(f"Error assessing impacts: {e}")
         raise HTTPException(status_code=500, detail=f"Impact assessment failed: {str(e)}")
+
+
+# Regional Prediction endpoint
+@router.get("/prediction/location")
+async def get_regional_prediction(
+    latitude: float,
+    longitude: float
+):
+    """
+    Get location-specific ionospheric storm prediction.
+
+    Adjusts global predictions based on regional factors:
+    - Latitude effects (high-latitude auroral zones more affected)
+    - Regional TEC distribution
+    - Magnetic latitude considerations
+
+    Parameters:
+    - latitude: Geographic latitude (-90 to 90)
+    - longitude: Geographic longitude (-180 to 180)
+    """
+    try:
+        # Validate coordinates
+        if not (-90 <= latitude <= 90):
+            raise HTTPException(status_code=400, detail="Latitude must be between -90 and 90")
+        if not (-180 <= longitude <= 180):
+            raise HTTPException(status_code=400, detail="Longitude must be between -180 and 180")
+
+        if data_service is None or data_service.latest_prediction is None:
+            raise HTTPException(status_code=503, detail="Prediction data not available")
+
+        # Get global prediction and TEC data
+        global_prediction = data_service.latest_prediction
+        tec_data = {
+            'tec_statistics': data_service.latest_data.get('tec_statistics', {})
+        } if data_service.latest_data else None
+
+        # Calculate regional prediction
+        regional_service = RegionalPredictionService()
+        regional_prediction = regional_service.get_regional_prediction(
+            latitude=latitude,
+            longitude=longitude,
+            global_prediction=global_prediction,
+            tec_data=tec_data
+        )
+
+        return regional_prediction
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error calculating regional prediction: {e}")
+        raise HTTPException(status_code=500, detail=f"Regional prediction failed: {str(e)}")
+
+
+# Alert System Pydantic models
+class CreateAlertRequest(BaseModel):
+    user_email: str
+    name: str
+    alert_type: str  # 'threshold', 'regional', 'impact'
+    threshold_probability: float = None
+    threshold_horizon: str = None  # '24h', '48h'
+    location_lat: float = None
+    location_lon: float = None
+    location_name: str = None
+
+
+# Alert endpoints
+@router.post("/alerts")
+async def create_alert(request: CreateAlertRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Create a new storm alert.
+
+    Alert types:
+    - threshold: Alert when probability exceeds threshold
+    - regional: Alert for specific location (future enhancement)
+    - impact: Alert based on impact severity (future enhancement)
+    """
+    try:
+        alert_service = AlertService()
+        alert = await alert_service.create_alert(
+            db=db,
+            user_email=request.user_email,
+            name=request.name,
+            alert_type=request.alert_type,
+            threshold_probability=request.threshold_probability,
+            threshold_horizon=request.threshold_horizon or '24h',
+            location_lat=request.location_lat,
+            location_lon=request.location_lon,
+            location_name=request.location_name
+        )
+
+        return {
+            "id": alert.id,
+            "name": alert.name,
+            "alert_type": alert.alert_type,
+            "threshold_probability": alert.threshold_probability,
+            "threshold_horizon": alert.threshold_horizon,
+            "enabled": alert.enabled,
+            "created_at": alert.created_at.isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating alert: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create alert: {str(e)}")
+
+
+@router.get("/alerts")
+async def get_alerts(user_email: str, db: AsyncSession = Depends(get_db)):
+    """Get all alerts for a user."""
+    try:
+        alert_service = AlertService()
+        alerts = await alert_service.get_user_alerts(db, user_email)
+
+        return {
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "name": alert.name,
+                    "alert_type": alert.alert_type,
+                    "threshold_probability": alert.threshold_probability,
+                    "threshold_horizon": alert.threshold_horizon,
+                    "location_name": alert.location_name,
+                    "enabled": alert.enabled,
+                    "created_at": alert.created_at.isoformat()
+                }
+                for alert in alerts
+            ],
+            "count": len(alerts)
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching alerts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch alerts: {str(e)}")
+
+
+@router.delete("/alerts/{alert_id}")
+async def delete_alert(alert_id: int, user_email: str, db: AsyncSession = Depends(get_db)):
+    """Delete an alert."""
+    try:
+        alert_service = AlertService()
+        success = await alert_service.delete_alert(db, alert_id, user_email)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Alert not found or unauthorized")
+
+        return {"status": "success", "message": "Alert deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting alert: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete alert: {str(e)}")
+
+
+@router.get("/alerts/check")
+async def check_alerts_now(db: AsyncSession = Depends(get_db)):
+    """
+    Check all alerts against current prediction (for testing/demo).
+
+    In production, this would be called by a background task.
+    """
+    try:
+        if data_service is None or data_service.latest_prediction is None:
+            raise HTTPException(status_code=503, detail="Prediction data not available")
+
+        alert_service = AlertService()
+        triggered = await alert_service.check_alerts(db, data_service.latest_prediction)
+
+        return {
+            "triggered_count": len(triggered),
+            "triggered_alerts": triggered
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking alerts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check alerts: {str(e)}")
+
+
+@router.get("/alerts/history")
+async def get_alert_history(user_email: str, limit: int = 50, db: AsyncSession = Depends(get_db)):
+    """Get alert trigger history for a user."""
+    try:
+        alert_service = AlertService()
+        history = await alert_service.get_alert_history(db, user_email, limit)
+
+        return {
+            "history": [
+                {
+                    "alert_id": h.alert_id,
+                    "triggered_at": h.triggered_at.isoformat(),
+                    "probability_24h": h.probability_24h,
+                    "probability_48h": h.probability_48h,
+                    "risk_level_24h": h.risk_level_24h,
+                    "notification_sent": h.notification_sent
+                }
+                for h in history
+            ],
+            "count": len(history)
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching alert history: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch alert history: {str(e)}")
