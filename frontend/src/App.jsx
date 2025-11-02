@@ -178,7 +178,9 @@ function App() {
             }}>
               Ionospheric Storm Prediction
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.7)' }}>Real-time monitoring and 24-hour forecasting</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Real-time monitoring and 24-hour forecasting • Powered by Ensemble Model
+            </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{

@@ -127,7 +127,7 @@ const EnsembleComparison = () => {
           </div>
         </div>
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
-          Combining climatology reliability with neural network storm detection
+          The main dashboard uses ensemble predictions (70/30 default). Adjust weights here to explore different combinations.
         </p>
 
         {/* Weight Slider */}
