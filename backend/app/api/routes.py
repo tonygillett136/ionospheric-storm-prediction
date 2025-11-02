@@ -154,34 +154,36 @@ async def get_ensemble_prediction(
         if not ensemble.climatology_loaded:
             await ensemble.load_climatology()
 
-        # Get recent historical data (last 24+ hours)
-        end_time = datetime.utcnow()
-        start_time = end_time - timedelta(hours=25)
+        # Use in-memory historical data from data_service
+        # (Live data is collected but not persisted to database)
+        in_memory_data = list(data_service.historical_data)
 
-        historical_measurements = await HistoricalDataRepository.get_measurements_by_time_range(
-            db, start_time, end_time
-        )
-
-        if len(historical_measurements) < 24:
+        if len(in_memory_data) < 24:
             raise HTTPException(
                 status_code=503,
-                detail=f"Insufficient historical data (need 24 hours, have {len(historical_measurements)})"
+                detail=f"Insufficient historical data (need 24 hours, have {len(in_memory_data)})"
             )
 
-        # Format data for ensemble predictor
+        # Format data for ensemble predictor - use last 24 data points
         historical_data = []
-        for m in historical_measurements[-24:]:  # Last 24 hours
+        for d in in_memory_data[-24:]:
+            tec_stats = d.get('tec_statistics', {})
+            sw_params = d.get('solar_wind_params', {})
+
             historical_data.append({
-                'tec_statistics': {'mean': m.tec_mean, 'std': m.tec_std},
-                'kp_index': m.kp_index,
-                'dst_index': m.dst_index,
-                'solar_wind_params': {
-                    'speed': m.solar_wind_speed,
-                    'density': m.solar_wind_density
+                'tec_statistics': {
+                    'mean': tec_stats.get('mean', 0),
+                    'std': tec_stats.get('std', 0)
                 },
-                'imf_bz': m.imf_bz,
-                'f107_flux': m.f107_flux,
-                'timestamp': m.timestamp.isoformat(),
+                'kp_index': d.get('kp_index', 0),
+                'dst_index': d.get('dst_index', 0),
+                'solar_wind_params': {
+                    'speed': sw_params.get('speed', 0),
+                    'density': sw_params.get('density', 0)
+                },
+                'imf_bz': d.get('imf_bz', 0),
+                'f107_flux': d.get('f107_flux', 100),
+                'timestamp': d.get('timestamp', datetime.utcnow().isoformat()),
                 'latitude': 45.0,  # Default mid-latitude
                 'longitude': 0.0
             })
