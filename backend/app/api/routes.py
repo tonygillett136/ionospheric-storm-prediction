@@ -100,11 +100,80 @@ async def get_current_data():
 
 
 @router.get("/prediction")
-async def get_prediction():
-    """Get the latest storm prediction (V2.1 model only)"""
+async def get_prediction(db: AsyncSession = Depends(get_db), use_ensemble: bool = True):
+    """
+    Get the latest storm prediction.
+
+    By default returns ensemble prediction (70% climatology + 30% V2.1).
+    Set use_ensemble=false to get V2.1 model predictions only.
+    """
     if data_service is None:
         raise HTTPException(status_code=503, detail="Data service not initialized")
 
+    # Return ensemble prediction by default
+    if use_ensemble:
+        from app.models.ensemble_predictor import EnsembleStormPredictor
+
+        if data_service.latest_data is None:
+            raise HTTPException(status_code=404, detail="No data available for prediction")
+
+        try:
+            # Initialize ensemble predictor with default 70/30 weighting
+            ensemble = EnsembleStormPredictor(
+                model_path="models/v2/best_model.keras",
+                climatology_weight=0.7,
+                model_weight=0.3
+            )
+
+            # Load climatology if not already loaded
+            if not ensemble.climatology_loaded:
+                await ensemble.load_climatology()
+
+            # Use in-memory historical data
+            in_memory_data = list(data_service.historical_data)
+
+            if len(in_memory_data) < 24:
+                # Fall back to V2.1-only if insufficient data for ensemble
+                if data_service.latest_prediction is None:
+                    raise HTTPException(status_code=404, detail="No prediction available yet")
+                return data_service.latest_prediction
+
+            # Format data for ensemble predictor
+            historical_data = []
+            for d in in_memory_data[-24:]:
+                tec_stats = d.get('tec_statistics', {})
+                sw_params = d.get('solar_wind_params', {})
+
+                historical_data.append({
+                    'tec_statistics': {
+                        'mean': tec_stats.get('mean', 0),
+                        'std': tec_stats.get('std', 0)
+                    },
+                    'kp_index': d.get('kp_index', 0),
+                    'dst_index': d.get('dst_index', 0),
+                    'solar_wind_params': {
+                        'speed': sw_params.get('speed', 0),
+                        'density': sw_params.get('density', 0)
+                    },
+                    'imf_bz': d.get('imf_bz', 0),
+                    'f107_flux': d.get('f107_flux', 100),
+                    'timestamp': d.get('timestamp', datetime.utcnow().isoformat()),
+                    'latitude': 45.0,
+                    'longitude': 0.0
+                })
+
+            # Get ensemble prediction
+            prediction = await ensemble.predict_with_components(historical_data)
+            return prediction
+
+        except Exception as e:
+            logger.error(f"Ensemble prediction failed: {e}")
+            # Fall back to V2.1-only prediction on error
+            if data_service.latest_prediction is None:
+                raise HTTPException(status_code=404, detail="No prediction available yet")
+            return data_service.latest_prediction
+
+    # V2.1-only prediction (when use_ensemble=false)
     if data_service.latest_prediction is None:
         raise HTTPException(status_code=404, detail="No prediction available yet")
 
