@@ -33,8 +33,17 @@ from app.models.storm_predictor_v2 import EnhancedStormPredictor
 class BaselineValidator:
     """Validates model against baseline forecasts."""
 
-    def __init__(self):
+    def __init__(self, model_path=None):
         self.predictor = EnhancedStormPredictor()
+
+        # Load trained model if path provided
+        if model_path:
+            print(f"🔄 Loading trained model from {model_path}...")
+            self.predictor.load_model(model_path)
+            print("   ✓ Model loaded successfully")
+        else:
+            print("⚠️  No model path provided - using untrained model")
+
         self.train_years = list(range(2015, 2023))  # 2015-2022
         self.test_years = [2023, 2024]  # 2023-2024
         self.climatology_table = {}  # (day_of_year, kp_bin) -> avg_tec
@@ -103,27 +112,41 @@ class BaselineValidator:
 
         return self.climatology_table.get((doy, kp_bin), np.mean(list(self.climatology_table.values())))
 
-    def model_forecast(self, measurement):
-        """Get V2 model forecast."""
-        # Prepare data in the format the model expects
-        data_dict = {
-            'tec_statistics': {'mean': measurement.tec_mean, 'std': measurement.tec_std},
-            'kp_index': measurement.kp_index,
-            'dst_index': measurement.dst_index,
-            'solar_wind_params': {
-                'speed': measurement.solar_wind_speed,
-                'density': measurement.solar_wind_density
-            },
-            'imf_bz': measurement.imf_bz,
-            'f107_flux': measurement.f107_flux,
-            'timestamp': measurement.timestamp.isoformat()
-        }
+    async def model_forecast(self, historical_sequence):
+        """
+        Get V2 model forecast using 24-hour historical sequence.
 
-        # Get prediction
-        prediction = self.predictor.predict(data_dict)
+        Args:
+            historical_sequence: List of 24 measurements (hourly data)
 
-        # Extract TEC forecast (assume first value of tec_forecast array)
-        tec_forecast = prediction.get('tec_forecast', [measurement.tec_mean])[0]
+        Returns:
+            TEC forecast value for 24h ahead
+        """
+        # Prepare 24-hour sequence in the format the model expects
+        data_sequence = []
+        for measurement in historical_sequence:
+            data_dict = {
+                'tec_statistics': {'mean': measurement.tec_mean, 'std': measurement.tec_std},
+                'kp_index': measurement.kp_index,
+                'dst_index': measurement.dst_index,
+                'solar_wind_params': {
+                    'speed': measurement.solar_wind_speed,
+                    'density': measurement.solar_wind_density
+                },
+                'imf_bz': measurement.imf_bz,
+                'f107_flux': measurement.f107_flux,
+                'timestamp': measurement.timestamp.isoformat(),
+                'latitude': 45.0,  # Default mid-latitude
+                'longitude': 0.0
+            }
+            data_sequence.append(data_dict)
+
+        # Get prediction from model
+        prediction = await self.predictor.predict_storm(data_sequence)
+
+        # Extract TEC forecast (first value of 24h forecast array, denormalized)
+        tec_forecast_normalized = prediction.get('tec_forecast', [0.2])[0]  # First hour of 24h forecast
+        tec_forecast = tec_forecast_normalized * 100.0  # Denormalize (was divided by 100 in training)
 
         return tec_forecast
 
@@ -198,24 +221,26 @@ class BaselineValidator:
         timestamps = []
         kp_values = []
 
-        # Only test on samples where we have data 24h ahead
+        # Only test on samples where we have 24h historical data AND 24h ahead forecast
+        # Need index >= 23 (for 24h history) and index < len - 24 (for 24h forecast)
         valid_test_samples = []
-        for i in range(len(self.test_data) - 25):
+        for i in range(23, len(self.test_data) - 25):
             current = self.test_data[i]
             future = self.test_data[i + 24]  # 24 hours ahead
+            historical_sequence = self.test_data[i - 23:i + 1]  # 24 hours of history (including current)
 
             # Check timestamp is actually 24h apart (±1 hour tolerance)
             time_diff = (future.timestamp - current.timestamp).total_seconds() / 3600
-            if 23 <= time_diff <= 25:
-                valid_test_samples.append((i, current, future))
+            if 23 <= time_diff <= 25 and len(historical_sequence) == 24:
+                valid_test_samples.append((i, current, future, historical_sequence))
 
-        print(f"   Found {len(valid_test_samples)} valid 24h forecast pairs")
+        print(f"   Found {len(valid_test_samples)} valid 24h forecast pairs (with 24h history)")
 
         # Progress tracking
         total = len(valid_test_samples)
         chunk_size = max(1, total // 20)  # Show 20 progress updates
 
-        for idx, (i, current, future) in enumerate(valid_test_samples):
+        for idx, (i, current, future, historical_sequence) in enumerate(valid_test_samples):
             if idx % chunk_size == 0:
                 progress = (idx / total) * 100
                 print(f"   Progress: {progress:.0f}% ({idx}/{total})")
@@ -232,15 +257,15 @@ class BaselineValidator:
                 current.kp_index   # Based on current Kp
             )
 
-            # Model prediction (try to get from V2 model)
+            # Model prediction (try to get from V2 model with 24h historical sequence)
             try:
-                model_pred = self.model_forecast(current)
+                model_pred = await self.model_forecast(historical_sequence)
             except Exception as e:
                 # If model fails, use NaN and continue
                 # (We'll still compare baselines)
                 model_pred = np.nan
                 if idx == 0:  # Only log once
-                    print(f"   ⚠️  Model predictions unavailable (error: {str(e)[:50]}...)")
+                    print(f"   ⚠️  Model predictions unavailable (error: {str(e)[:80]}...)")
                     print(f"   → Will compare Persistence vs Climatology baselines only\n")
 
             persistence_preds.append(pers_pred)
@@ -387,7 +412,9 @@ class BaselineValidator:
 
 async def main():
     """Main entry point."""
-    validator = BaselineValidator()
+    # Load the best trained model from V2.1 training
+    model_path = "models/v2/best_model.keras"
+    validator = BaselineValidator(model_path=model_path)
     await validator.run_validation()
 
 

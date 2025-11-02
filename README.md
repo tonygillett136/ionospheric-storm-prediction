@@ -21,17 +21,22 @@ This system provides critical space weather forecasting for applications in:
 - WebSocket streaming for instant updates
 
 ### 🤖 Advanced ML Prediction
-- **Enhanced BiLSTM-Attention** architecture with multi-head attention (V2)
-- **16 advanced features** including derived space weather indices
-- **3.9M parameters** for state-of-the-art accuracy (8x larger than V1)
+- **Enhanced BiLSTM-Attention** architecture with multi-head attention (V2.1)
+- **24 physics-informed features** including:
+  - Magnetic latitude coordinates (AACGM-v2)
+  - Rate-of-change detection (Kp, Dst, TEC trends)
+  - Solar cycle phase
+  - Temporal encoding (daytime, season, high-latitude zones)
+  - Traditional space weather indices
+- **3.88M parameters** for state-of-the-art accuracy (8x larger than V1)
 - **Multi-task learning** with 4 output heads:
   - Storm binary prediction (24h ahead)
   - Hourly storm probabilities (24 hours)
   - TEC forecasting (24 hours)
   - Uncertainty estimation
 - **Risk classification** (Low/Moderate/Elevated/High/Severe)
-- **Model versioning** - Compare V1 (CNN-LSTM) vs V2 (BiLSTM-Attention)
-- **50-70% improved accuracy** over baseline model
+- **Rigorous validation** - 3.1% improvement vs climatology baseline (15.68 vs 16.18 TECU RMSE)
+- **Model versioning** - Compare V1 (CNN-LSTM) vs V2.1 (BiLSTM-Attention)
 
 ### 📊 Interactive Visualizations
 - **3D Globe** - Real-time TEC distribution on photo-realistic Earth

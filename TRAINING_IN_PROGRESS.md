@@ -1,8 +1,9 @@
-# Model V2.1 Training - In Progress
+# Model V2.1 Training - Complete
 
-**Started**: November 2, 2025
+**Started**: November 2, 2025 10:24 UTC
+**Completed**: November 2, 2025 14:43 UTC
 **Model**: Enhanced BiLSTM-Attention V2.1 (24 features)
-**Status**: 🔄 TRAINING IN PROGRESS
+**Status**: ✅ TRAINING COMPLETE - VALIDATION IN PROGRESS
 
 ---
 
@@ -88,27 +89,48 @@ Must beat climatology baseline from validation analysis:
 
 ---
 
-## Expected Timeline
+## Timeline
 
-- **Sequence generation**: ~30 min (COMPLETE)
-- **Training**: 2-4 hours (IN PROGRESS)
-- **Validation**: 30 min (pending)
-- **Baseline comparison**: 30 min (pending)
-- **Total**: 3-5 hours
+- **Sequence generation**: 30 min ✅
+- **Training**: 4 hours 19 min ✅
+- **Validation**: In progress... ⏳
+- **Baseline comparison**: Pending
+- **Total**: ~5 hours (estimated)
 
 ---
 
-## Next Steps (After Training)
+## Training Results
 
-1. Load trained model
-2. Run `validate_baselines.py` with V2.1 model
-3. Compare:
-   - Persistence RMSE: 18.74 TECU
-   - Climatology RMSE: 16.17 TECU
-   - V2.1 RMSE: ???
-4. Calculate skill scores
-5. Generate final report
-6. Determine production readiness
+**Final Performance** (on validation set):
+- **Storm Binary Accuracy**: 70.4%
+- **Storm Binary AUC**: 78.8%
+- **TEC Forecast MAE**: 3.1 TECU
+- **Early Stopping**: Stopped at epoch 68 (patience 15)
+- **Best Model**: Saved to `models/v2/best_model.keras`
+
+**Training Metrics** (final epoch):
+- Loss: 2.67
+- Storm accuracy: 70.4%
+- Storm AUC: 76.9%
+- TEC MAE: 0.031 (normalized)
+
+---
+
+## Baseline Validation (In Progress)
+
+Currently testing V2.1 model against baselines on 2023-2024 data:
+
+**Test Configuration**:
+- Test samples: 17,473 24-hour forecasts
+- Baselines:
+  - Persistence: 18.74 TECU RMSE
+  - Climatology: 16.17 TECU RMSE ← Must beat this
+- V2.1 Model: Testing now...
+
+**Target Performance**:
+1. Minimum: <16.17 TECU (beat climatology)
+2. Good: <13.00 TECU (20% skill)
+3. Excellent: <11.00 TECU (30% skill)
 
 ---
 
@@ -116,22 +138,29 @@ Must beat climatology baseline from validation analysis:
 
 **10:24 UTC**: Training started
 - Model built with 3,879,986 parameters ✓
-- Sequence generation started ✓
-- Magnetic coordinate warnings (non-critical, using geographic fallback) ⚠️
-- Training epochs will begin shortly...
+- Sequence generation completed ✓
+
+**14:43 UTC**: Training complete
+- 68 epochs completed ✓
+- Early stopping triggered ✓
+- Best model saved ✓
+- Final storm AUC: 78.8% ✓
+
+**14:50 UTC**: Validation started
+- Fixed validation script for 24-hour sequences ✓
+- Running baseline comparison (17,473 forecasts) ⏳
+- ETA: 10-15 minutes
 
 ---
 
-## Monitoring
+## Saved Artifacts
 
-Training log: `backend/training_v2.1.log`
-Model checkpoints: `backend/models/v2/`
-
-Check progress:
-```bash
-tail -f backend/training_v2.1.log
-```
+- **Best Model**: `backend/models/v2/best_model.keras`
+- **Final Model**: `backend/models/v2/final_model.keras`
+- **Training Log**: `backend/training_v2.1.log`
+- **Training History**: `backend/logs/v2/training_history.csv`
+- **TensorBoard Logs**: `backend/logs/v2/`
 
 ---
 
-**Status will be updated as training progresses...**
+**Next: Awaiting validation results to determine if V2.1 beats climatology baseline...**

@@ -1,5 +1,5 @@
 {
-  "validation_date": "2025-11-02T10:14:19.822830",
+  "validation_date": "2025-11-02T14:57:11.475093",
   "train_years": [
     2015,
     2016,
@@ -14,28 +14,35 @@
     2023,
     2024
   ],
-  "test_samples": 17496,
+  "test_samples": 17473,
   "metrics": {
     "persistence": {
       "name": "Persistence",
-      "rmse": 18.73744823252556,
-      "mae": 7.9458150434384995,
-      "correlation": 0.19468880720433912,
-      "bias": 0.00905692729766812,
-      "n_samples": 17496
+      "rmse": 18.749136326547752,
+      "mae": 7.951277399416243,
+      "correlation": 0.19463845655282097,
+      "bias": 0.004179591369541603,
+      "n_samples": 17473
     },
     "climatology": {
       "name": "Climatology",
-      "rmse": 16.172307580472182,
-      "mae": 8.131155535725812,
-      "correlation": 0.08300282342013886,
-      "bias": -2.1252727005474124,
-      "n_samples": 17496
+      "rmse": 16.18057739326694,
+      "mae": 8.13442372860426,
+      "correlation": 0.08317044470944071,
+      "bias": -2.1312662600546037,
+      "n_samples": 17473
     },
-    "v2_model": null
+    "v2_model": {
+      "name": "V2 Model",
+      "rmse": 15.682481790744657,
+      "mae": 10.840540262118697,
+      "correlation": NaN,
+      "bias": 5.261176672580553,
+      "n_samples": 17473
+    }
   },
   "skill_scores": {
-    "vs_persistence": null,
-    "vs_climatology": null
+    "vs_persistence": 0.16356244268494013,
+    "vs_climatology": 0.030783549339194242
   }
 }
