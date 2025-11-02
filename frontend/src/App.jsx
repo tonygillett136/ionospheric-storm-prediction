@@ -15,6 +15,7 @@ import Globe3D from './components/Globe3D';
 import BacktestWorkshop from './components/BacktestWorkshop';
 import ImpactDashboard from './components/ImpactDashboard';
 import RegionalPrediction from './components/RegionalPrediction';
+import EnsembleComparison from './components/EnsembleComparison';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -271,6 +272,23 @@ function App() {
           >
             📍 Regional Forecast
           </button>
+          <button
+            onClick={() => setActiveView('ensemble')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'ensemble' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'ensemble' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'ensemble' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'ensemble' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            🔮 Ensemble Model
+          </button>
         </div>
       </header>
 
@@ -511,6 +529,9 @@ function App() {
 
         {/* Regional Prediction View */}
         {activeView === 'regional' && <RegionalPrediction />}
+
+        {/* Ensemble Model View */}
+        {activeView === 'ensemble' && <EnsembleComparison />}
       </main>
 
       <style>{`

@@ -73,15 +73,15 @@ const CurrentConditions = ({ tecData, spaceWeather, prediction }) => {
         <div style={{
           padding: '8px 16px',
           borderRadius: '20px',
-          background: `${getConditionColor(prediction?.risk_level || 'unknown')}20`,
-          border: `2px solid ${getConditionColor(prediction?.risk_level || 'unknown')}`,
+          background: `${getConditionColor((prediction?.risk_level || prediction?.risk_level_24h) || 'unknown')}20`,
+          border: `2px solid ${getConditionColor((prediction?.risk_level || prediction?.risk_level_24h) || 'unknown')}`,
           fontSize: '14px',
           fontWeight: '600',
-          color: getConditionColor(prediction?.risk_level || 'unknown'),
+          color: getConditionColor((prediction?.risk_level || prediction?.risk_level_24h) || 'unknown'),
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
         }}>
-          {prediction?.risk_level || 'Unknown'} Activity
+          {(prediction?.risk_level || prediction?.risk_level_24h) || 'Unknown'} Activity
         </div>
       </div>
 
@@ -187,7 +187,7 @@ const CurrentConditions = ({ tecData, spaceWeather, prediction }) => {
             title="Storm Risk (24h)"
             value={`${prediction?.storm_probability_24h ? Math.round(prediction.storm_probability_24h * 100) : '--'}% probability`}
             description={getStormRiskDesc(prediction?.storm_probability_24h)}
-            level={prediction?.risk_level || 'unknown'}
+            level={(prediction?.risk_level || prediction?.risk_level_24h) || 'unknown'}
           />
 
           {/* Space Weather Environment */}
@@ -202,7 +202,8 @@ const CurrentConditions = ({ tecData, spaceWeather, prediction }) => {
       </div>
 
       {/* Recommendations */}
-      {(prediction?.risk_level === 'high' || prediction?.risk_level === 'severe') && (
+      {((prediction?.risk_level === 'high' || prediction?.risk_level_24h === 'high') ||
+        (prediction?.risk_level === 'severe' || prediction?.risk_level_24h === 'severe')) && (
         <div style={{
           marginTop: '16px',
           padding: '16px',

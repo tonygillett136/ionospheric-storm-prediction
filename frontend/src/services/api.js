@@ -42,6 +42,21 @@ class APIService {
     }
   }
 
+  async getEnsemblePrediction(climatologyWeight = 0.7, modelWeight = 0.3) {
+    try {
+      const response = await this.axiosInstance.get('/prediction/ensemble', {
+        params: {
+          climatology_weight: climatologyWeight,
+          model_weight: modelWeight
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching ensemble prediction:', error);
+      throw error;
+    }
+  }
+
   async getCurrentTEC() {
     try {
       const response = await this.axiosInstance.get('/tec/current');
