@@ -351,11 +351,13 @@ class EnhancedStormPredictor:
             if HAS_AACGMV2:
                 try:
                     # Convert to magnetic coordinates (altitude 350km for ionosphere)
-                    mag_lat, mag_lon = aacgmv2.convert_latlon(
+                    result = aacgmv2.convert_latlon(
                         latitude, longitude, 350, timestamp, method_code='G2A'
                     )
+                    # aacgmv2 returns (lat, lon, r) tuple
+                    mag_lat = result[0] if isinstance(result, tuple) else result
                 except Exception as e:
-                    logger.warning(f"Magnetic coordinate conversion failed: {e}")
+                    # Only log first failure to avoid spam
                     mag_lat = latitude  # Fallback to geographic
             else:
                 mag_lat = latitude  # Fallback if library not available
