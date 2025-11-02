@@ -1,14 +1,20 @@
 """
-Enhanced Ionospheric Storm Prediction Model V2
+Enhanced Ionospheric Storm Prediction Model V2.1
 State-of-the-art architecture based on 2024/2025 research
 
 Key improvements over V1:
 - Multi-head attention mechanism
 - Bidirectional LSTM layers
 - Residual connections
-- Enhanced feature engineering (16 features)
+- Enhanced feature engineering (24 features - upgraded from 16)
 - Layer normalization
 - Separate encoder-decoder architecture
+
+V2.1 New Features:
+- Magnetic latitude/longitude coordinates
+- Rate-of-change features (Kp, Dst, TEC trends)
+- Solar cycle phase
+- Improved temporal encoding
 """
 import numpy as np
 import tensorflow as tf
@@ -17,6 +23,13 @@ from tensorflow.keras import layers
 import logging
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
+
+try:
+    import aacgmv2
+    HAS_AACGMV2 = True
+except ImportError:
+    HAS_AACGMV2 = False
+    logging.warning("aacgmv2 not available - magnetic coordinates disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +114,14 @@ class EnhancedStormPredictor:
         self.model: Optional[keras.Model] = None
         self.model_path = model_path
         self.sequence_length = 24  # 24 hours of historical data
-        self.feature_count = 16  # Enhanced feature set
+        self.feature_count = 24  # Enhanced feature set (v2.1 - upgraded from 16)
 
         # Feature scaling parameters
         self.feature_means = None
         self.feature_stds = None
+
+        # Historical data cache for rate-of-change features
+        self.previous_measurements = []
 
         if model_path:
             self.load_model(model_path)
@@ -240,9 +256,9 @@ class EnhancedStormPredictor:
         logger.info(f"Built Enhanced CNN-BiLSTM-Attention model with {model.count_params():,} parameters")
         return model
 
-    def prepare_enhanced_features(self, data: Dict) -> np.ndarray:
+    def prepare_enhanced_features(self, data: Dict, previous_data: Optional[Dict] = None) -> np.ndarray:
         """
-        Prepare enhanced 16-feature vector based on state-of-the-art research
+        Prepare enhanced 24-feature vector based on state-of-the-art research (V2.1)
 
         Features:
         1-2: TEC mean, std
@@ -255,18 +271,28 @@ class EnhancedStormPredictor:
         14: Solar wind pressure (derived)
         15: Ephemeral correlation time (derived)
         16: TEC rate of change (derived)
+        17-18: Magnetic latitude (sin/cos) - NEW
+        19: Solar cycle phase - NEW
+        20: Kp rate-of-change - NEW
+        21: Dst rate-of-change - NEW
+        22: Daytime indicator - NEW
+        23: Season (normalized 0-1) - NEW
+        24: High-latitude indicator - NEW
         """
         try:
             features = []
 
             # TEC features
             tec_stats = data.get('tec_statistics', {})
-            features.append(tec_stats.get('mean', 20.0) / 100.0)  # Normalize
+            tec_mean = tec_stats.get('mean', 20.0)
+            features.append(tec_mean / 100.0)  # Normalize
             features.append(tec_stats.get('std', 5.0) / 20.0)
 
             # Geomagnetic indices
-            features.append(data.get('kp_index', 3.0) / 9.0)  # 0-9 scale
-            features.append(data.get('dst_index', 0.0) / 100.0)  # Normalize Dst
+            kp_index = data.get('kp_index', 3.0)
+            dst_index = data.get('dst_index', 0.0)
+            features.append(kp_index / 9.0)  # 0-9 scale
+            features.append(dst_index / 100.0)  # Normalize Dst
 
             # Solar wind parameters
             solar_wind = data.get('solar_wind_params', {})
@@ -285,7 +311,12 @@ class EnhancedStormPredictor:
             features.append(f107 / 300.0)  # Placeholder for 81-day avg (would need historical)
 
             # Time features (cyclical encoding for better periodicity handling)
-            timestamp = datetime.fromisoformat(data.get('timestamp', datetime.utcnow().isoformat()))
+            timestamp_str = data.get('timestamp', datetime.utcnow().isoformat())
+            if isinstance(timestamp_str, str):
+                timestamp = datetime.fromisoformat(timestamp_str)
+            else:
+                timestamp = timestamp_str
+
             hour = timestamp.hour
             features.append(np.sin(2 * np.pi * hour / 24))
             features.append(np.cos(2 * np.pi * hour / 24))
@@ -294,7 +325,7 @@ class EnhancedStormPredictor:
             features.append(np.sin(2 * np.pi * day_of_year / 365))
             features.append(np.cos(2 * np.pi * day_of_year / 365))
 
-            # Derived features
+            # Derived features (existing)
             # Solar wind ram pressure: P = rho * v^2 * 1.6726e-6 (nPa)
             sw_pressure = sw_density * (sw_speed ** 2) * 1.6726e-6 / 10.0  # Normalize
             features.append(np.clip(sw_pressure, 0, 1))
@@ -303,9 +334,71 @@ class EnhancedStormPredictor:
             ect = 1.0 / (1.0 + abs(imf_bz) / 10.0)
             features.append(ect)
 
-            # TEC rate of change (simplified - would need time series)
-            tec_roc = 0.0  # Placeholder
+            # TEC rate of change (if previous data available)
+            tec_roc = 0.0
+            if previous_data:
+                prev_tec = previous_data.get('tec_statistics', {}).get('mean', tec_mean)
+                tec_roc = (tec_mean - prev_tec) / 100.0  # Normalized change
             features.append(tec_roc)
+
+            # NEW FEATURES (V2.1)
+
+            # 17-18: Magnetic latitude (sin/cos encoding)
+            # Default to mid-latitude if coordinates not provided
+            latitude = data.get('latitude', 45.0)
+            longitude = data.get('longitude', 0.0)
+
+            if HAS_AACGMV2:
+                try:
+                    # Convert to magnetic coordinates (altitude 350km for ionosphere)
+                    mag_lat, mag_lon = aacgmv2.convert_latlon(
+                        latitude, longitude, 350, timestamp, method_code='G2A'
+                    )
+                except Exception as e:
+                    logger.warning(f"Magnetic coordinate conversion failed: {e}")
+                    mag_lat = latitude  # Fallback to geographic
+            else:
+                mag_lat = latitude  # Fallback if library not available
+
+            # Encode magnetic latitude (circular, important for auroral zones)
+            features.append(np.sin(2 * np.pi * mag_lat / 180.0))
+            features.append(np.cos(2 * np.pi * mag_lat / 180.0))
+
+            # 19: Solar cycle phase (11-year cycle, ~2020 = cycle minimum, ~2025 = rising)
+            # Simplified: assume cycle 25 minimum was 2019
+            year = timestamp.year
+            years_since_minimum = year - 2019
+            solar_cycle_phase = (years_since_minimum % 11) / 11.0  # Normalize 0-1
+            features.append(solar_cycle_phase)
+
+            # 20: Kp rate-of-change (if previous data available)
+            kp_rate = 0.0
+            if previous_data:
+                prev_kp = previous_data.get('kp_index', kp_index)
+                kp_rate = (kp_index - prev_kp) / 9.0  # Normalized change
+            features.append(kp_rate)
+
+            # 21: Dst rate-of-change (if previous data available)
+            dst_rate = 0.0
+            if previous_data:
+                prev_dst = previous_data.get('dst_index', dst_index)
+                dst_rate = (dst_index - prev_dst) / 100.0  # Normalized change
+            features.append(dst_rate)
+
+            # 22: Daytime indicator (1 = day, 0 = night, smooth transition)
+            # Daytime is roughly 6-18 local time
+            is_daytime = 0.5 + 0.5 * np.cos(2 * np.pi * (hour - 12) / 24)
+            features.append(is_daytime)
+
+            # 23: Season (normalized 0-1, cyclical)
+            # 0 = winter solstice, 0.5 = summer solstice
+            season = (day_of_year - 355) / 365.0  # Normalize with winter solstice as reference
+            features.append(season % 1.0)
+
+            # 24: High-latitude indicator (auroral zone 55-75°)
+            abs_mag_lat = abs(mag_lat)
+            high_lat_indicator = 1.0 if 55 <= abs_mag_lat <= 75 else 0.0
+            features.append(high_lat_indicator)
 
             return np.array(features, dtype=np.float32)
 

@@ -69,9 +69,9 @@ class StormDataGenerator:
             # Target: data 24 hours ahead
             target_point = self.measurements[i + self.sequence_length + 24]
 
-            # Convert to features
+            # Convert to features (with rate-of-change from previous timestep)
             features = []
-            for m in input_sequence:
+            for j, m in enumerate(input_sequence):
                 data_dict = {
                     'tec_statistics': {'mean': m.tec_mean, 'std': m.tec_std},
                     'kp_index': m.kp_index,
@@ -82,9 +82,22 @@ class StormDataGenerator:
                     },
                     'imf_bz': m.imf_bz,
                     'f107_flux': m.f107_flux,
-                    'timestamp': m.timestamp.isoformat()
+                    'timestamp': m.timestamp.isoformat(),
+                    'latitude': 45.0,  # Default mid-latitude
+                    'longitude': 0.0
                 }
-                feat = self.predictor.prepare_enhanced_features(data_dict)
+
+                # Get previous measurement for rate-of-change features
+                previous_data = None
+                if j > 0:
+                    prev_m = input_sequence[j - 1]
+                    previous_data = {
+                        'tec_statistics': {'mean': prev_m.tec_mean, 'std': prev_m.tec_std},
+                        'kp_index': prev_m.kp_index,
+                        'dst_index': prev_m.dst_index
+                    }
+
+                feat = self.predictor.prepare_enhanced_features(data_dict, previous_data)
                 feat = self.predictor.normalize_features(feat)
                 features.append(feat)
 
