@@ -1,0 +1,41 @@
+{
+  "validation_date": "2025-11-02T10:14:19.822830",
+  "train_years": [
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "test_years": [
+    2023,
+    2024
+  ],
+  "test_samples": 17496,
+  "metrics": {
+    "persistence": {
+      "name": "Persistence",
+      "rmse": 18.73744823252556,
+      "mae": 7.9458150434384995,
+      "correlation": 0.19468880720433912,
+      "bias": 0.00905692729766812,
+      "n_samples": 17496
+    },
+    "climatology": {
+      "name": "Climatology",
+      "rmse": 16.172307580472182,
+      "mae": 8.131155535725812,
+      "correlation": 0.08300282342013886,
+      "bias": -2.1252727005474124,
+      "n_samples": 17496
+    },
+    "v2_model": null
+  },
+  "skill_scores": {
+    "vs_persistence": null,
+    "vs_climatology": null
+  }
+}
