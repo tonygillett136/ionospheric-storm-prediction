@@ -17,6 +17,7 @@ import ImpactDashboard from './components/ImpactDashboard';
 import RegionalPrediction from './components/RegionalPrediction';
 import EnsembleComparison from './components/EnsembleComparison';
 import ClimatologyExplorer from './components/ClimatologyExplorer';
+import StormGallery from './components/StormGallery';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -309,6 +310,23 @@ function App() {
           >
             📚 Climatology Explorer
           </button>
+          <button
+            onClick={() => setActiveView('storms')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'storms' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'storms' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'storms' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'storms' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            ⚡ Storm Gallery
+          </button>
         </div>
       </header>
 
@@ -555,6 +573,9 @@ function App() {
 
         {/* Climatology Explorer View */}
         {activeView === 'climatology' && <ClimatologyExplorer />}
+
+        {/* Storm Gallery View */}
+        {activeView === 'storms' && <StormGallery />}
       </main>
 
       <style>{`

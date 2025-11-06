@@ -137,6 +137,26 @@ class APIService {
     }
   }
 
+  async getStormGallery() {
+    try {
+      const response = await this.axiosInstance.get('/storms/gallery');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching storm gallery:', error);
+      throw error;
+    }
+  }
+
+  async getStormDetails(stormId) {
+    try {
+      const response = await this.axiosInstance.get(`/storms/${stormId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching storm ${stormId} details:`, error);
+      throw error;
+    }
+  }
+
   // Generic HTTP methods for custom endpoints
   async get(endpoint) {
     try {

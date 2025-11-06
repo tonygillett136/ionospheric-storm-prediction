@@ -1136,3 +1136,124 @@ async def get_climatology_heatmap(db: AsyncSession = Depends(get_db)):
             status_code=500,
             detail=f"Climatology heatmap generation failed: {str(e)}"
         )
+
+
+# Historical Storm Gallery endpoints
+@router.get("/storms/gallery")
+async def get_storm_gallery():
+    """
+    Get curated gallery of major historical geomagnetic storms.
+
+    Returns notable storm events from 2015-2025 with:
+    - Storm metadata and severity
+    - Real-world impacts
+    - Scientific context
+    - Links to external resources
+    """
+    import sys
+    sys.path.append('/Users/tonygillett/code/ionospheric_prediction/backend')
+    from storm_events import MAJOR_STORM_EVENTS
+
+    try:
+        return {
+            "storms": MAJOR_STORM_EVENTS,
+            "count": len(MAJOR_STORM_EVENTS),
+            "date_range": {
+                "start": "2015-01-01",
+                "end": "2025-12-31"
+            },
+            "severity_levels": {
+                "G1": "Minor",
+                "G2": "Moderate",
+                "G3": "Strong",
+                "G4": "Severe",
+                "G5": "Extreme"
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error loading storm gallery: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Storm gallery failed: {str(e)}"
+        )
+
+
+@router.get("/storms/{storm_id}")
+async def get_storm_details(storm_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Get detailed data for a specific historical storm event.
+
+    Returns:
+    - Storm metadata
+    - Actual measurements during the storm period
+    - Time series data (Kp, TEC, solar wind, etc.)
+    - Peak values and statistics
+    """
+    import sys
+    sys.path.append('/Users/tonygillett/code/ionospheric_prediction/backend')
+    from storm_events import get_storm_by_id
+
+    try:
+        # Get storm metadata
+        storm_info = get_storm_by_id(storm_id)
+        if not storm_info:
+            raise HTTPException(status_code=404, detail=f"Storm {storm_id} not found")
+
+        # Parse dates
+        start_date = datetime.fromisoformat(storm_info['date_start'])
+        end_date = datetime.fromisoformat(storm_info['date_end']) + timedelta(days=1)
+
+        # Query database for actual measurements during storm
+        measurements = await HistoricalDataRepository.get_measurements_by_time_range(
+            db, start_date, end_date
+        )
+
+        # Format time series data
+        time_series = []
+        for m in measurements:
+            # Skip fill values
+            if m.kp_index > 9 or (m.imf_bz and abs(m.imf_bz) > 900):
+                continue
+
+            time_series.append({
+                "timestamp": m.timestamp.isoformat(),
+                "kp_index": m.kp_index,
+                "dst_index": m.dst_index,
+                "tec_mean": m.tec_mean,
+                "solar_wind_speed": m.solar_wind_speed,
+                "solar_wind_density": m.solar_wind_density,
+                "imf_bz": m.imf_bz,
+                "f107_flux": m.f107_flux
+            })
+
+        # Calculate storm statistics
+        if time_series:
+            kp_values = [d['kp_index'] for d in time_series if d['kp_index'] is not None]
+            tec_values = [d['tec_mean'] for d in time_series if d['tec_mean'] is not None]
+
+            storm_stats = {
+                "max_kp": max(kp_values) if kp_values else None,
+                "avg_kp": round(np.mean(kp_values), 2) if kp_values else None,
+                "max_tec": max(tec_values) if tec_values else None,
+                "avg_tec": round(np.mean(tec_values), 2) if tec_values else None,
+                "duration_hours": len(time_series)
+            }
+        else:
+            storm_stats = {}
+
+        return {
+            "storm_info": storm_info,
+            "measurements": time_series,
+            "statistics": storm_stats,
+            "data_availability": len(time_series) > 0
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching storm details: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch storm details: {str(e)}"
+        )
