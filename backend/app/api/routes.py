@@ -885,3 +885,253 @@ async def get_alert_history(user_email: str, limit: int = 50, db: AsyncSession =
     except Exception as e:
         logger.error(f"Error fetching alert history: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch alert history: {str(e)}")
+
+
+# Climatology Exploration endpoints
+@router.get("/climatology/explore")
+async def explore_climatology(
+    start_date: str = None,
+    end_date: str = None,
+    days: int = 365,
+    kp_scenario: str = "current",  # 'current', 'quiet', 'moderate', 'storm', 'specific'
+    kp_value: float = 3.0,
+    hourly_resolution: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Explore climatology data for any date range, including future dates.
+
+    Since climatology is based on day-of-year patterns, it can be projected
+    indefinitely into the future. This endpoint is designed to help users
+    understand climatological patterns in ionospheric TEC.
+
+    Parameters:
+    - start_date: ISO format start date (default: today)
+    - end_date: ISO format end date (default: start_date + days)
+    - days: Number of days to project (default: 365, max: 730 for 2 years)
+    - kp_scenario: Geomagnetic activity scenario:
+        * 'current' - Use current Kp index
+        * 'quiet' - Use Kp=2 (quiet conditions)
+        * 'moderate' - Use Kp=5 (moderate storm)
+        * 'storm' - Use Kp=7 (strong storm)
+        * 'specific' - Use kp_value parameter
+    - kp_value: Specific Kp value when kp_scenario='specific' (0-9)
+    - hourly_resolution: If true, return hourly data points (24x more data)
+
+    Returns:
+    - Climatology forecast data with timestamps and TEC values
+    - Statistics and metadata about the climatological period
+    """
+    from app.models.ensemble_predictor import EnsembleStormPredictor
+
+    try:
+        # Parse or default dates
+        if start_date:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        else:
+            start_dt = datetime.utcnow()
+
+        if end_date:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            end_dt = start_dt + timedelta(days=days)
+
+        # Validate date range
+        if start_dt >= end_dt:
+            raise HTTPException(status_code=400, detail="Start date must be before end date")
+
+        duration_days = (end_dt - start_dt).days
+        if duration_days > 730:
+            raise HTTPException(
+                status_code=400,
+                detail="Maximum range is 730 days (2 years). Climatology repeats annually."
+            )
+
+        # Determine Kp index to use
+        if kp_scenario == "current":
+            # Use current Kp from data service
+            if data_service and data_service.latest_data:
+                kp = data_service.latest_data.get('kp_index', 3.0)
+            else:
+                kp = 3.0  # Default moderate value
+        elif kp_scenario == "quiet":
+            kp = 2.0
+        elif kp_scenario == "moderate":
+            kp = 5.0
+        elif kp_scenario == "storm":
+            kp = 7.0
+        elif kp_scenario == "specific":
+            kp = max(0.0, min(9.0, kp_value))  # Clamp to valid range
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid kp_scenario: {kp_scenario}"
+            )
+
+        # Initialize ensemble predictor and load climatology
+        ensemble = EnsembleStormPredictor(
+            model_path="models/v2/best_model.keras",
+            climatology_weight=1.0,
+            model_weight=0.0
+        )
+
+        if not ensemble.climatology_loaded:
+            await ensemble.load_climatology()
+
+        # Generate climatology data
+        climatology_data = []
+
+        if hourly_resolution:
+            # Hourly resolution
+            current_dt = start_dt
+            while current_dt < end_dt:
+                tec_value = ensemble.get_climatology_forecast(current_dt, kp)
+                climatology_data.append({
+                    "timestamp": current_dt.isoformat(),
+                    "tec_mean": round(tec_value, 2),
+                    "day_of_year": current_dt.timetuple().tm_yday,
+                    "kp_index": kp
+                })
+                current_dt += timedelta(hours=1)
+        else:
+            # Daily resolution (noon each day)
+            current_dt = start_dt.replace(hour=12, minute=0, second=0, microsecond=0)
+            while current_dt < end_dt:
+                tec_value = ensemble.get_climatology_forecast(current_dt, kp)
+                climatology_data.append({
+                    "timestamp": current_dt.isoformat(),
+                    "tec_mean": round(tec_value, 2),
+                    "day_of_year": current_dt.timetuple().tm_yday,
+                    "kp_index": kp
+                })
+                current_dt += timedelta(days=1)
+
+        # Calculate statistics
+        tec_values = [d["tec_mean"] for d in climatology_data]
+        stats = {
+            "mean": round(np.mean(tec_values), 2),
+            "std": round(np.std(tec_values), 2),
+            "min": round(np.min(tec_values), 2),
+            "max": round(np.max(tec_values), 2),
+            "median": round(np.median(tec_values), 2)
+        }
+
+        return {
+            "metadata": {
+                "start_date": start_dt.isoformat(),
+                "end_date": end_dt.isoformat(),
+                "duration_days": duration_days,
+                "kp_scenario": kp_scenario,
+                "kp_value": kp,
+                "hourly_resolution": hourly_resolution,
+                "data_points": len(climatology_data),
+                "description": "Climatological TEC forecast based on 2015-2022 historical patterns"
+            },
+            "statistics": stats,
+            "data": climatology_data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating climatology data: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Climatology exploration failed: {str(e)}"
+        )
+
+
+@router.get("/climatology/heatmap")
+async def get_climatology_heatmap(db: AsyncSession = Depends(get_db)):
+    """
+    Get climatology data formatted as a heatmap (day-of-year × Kp index).
+
+    Returns the complete climatology table showing how TEC varies by:
+    - Day of year (1-365, rows)
+    - Kp index (0-9, columns)
+
+    This provides a comprehensive view of seasonal and geomagnetic patterns.
+    """
+    from app.models.ensemble_predictor import EnsembleStormPredictor
+
+    try:
+        # Initialize and load climatology
+        ensemble = EnsembleStormPredictor(
+            model_path="models/v2/best_model.keras",
+            climatology_weight=1.0,
+            model_weight=0.0
+        )
+
+        if not ensemble.climatology_loaded:
+            await ensemble.load_climatology()
+
+        # Build heatmap data structure
+        heatmap_data = []
+
+        for doy in range(1, 366):  # Day of year 1-365
+            row = {
+                "day_of_year": doy,
+                "date_example": datetime(2025, 1, 1) + timedelta(days=doy-1),
+                "kp_values": {}
+            }
+
+            for kp_bin in range(10):  # Kp 0-9
+                tec_value = ensemble.climatology_table.get((doy, kp_bin), 0)
+                row["kp_values"][f"kp_{kp_bin}"] = round(tec_value, 2)
+
+            heatmap_data.append(row)
+
+        # Calculate statistics by Kp level
+        kp_stats = {}
+        for kp_bin in range(10):
+            values = [ensemble.climatology_table.get((doy, kp_bin), 0) for doy in range(1, 366)]
+            kp_stats[f"kp_{kp_bin}"] = {
+                "mean": round(np.mean(values), 2),
+                "std": round(np.std(values), 2),
+                "min": round(np.min(values), 2),
+                "max": round(np.max(values), 2)
+            }
+
+        # Calculate statistics by season
+        seasons = {
+            "winter": list(range(1, 80)) + list(range(356, 366)),  # Dec-Feb
+            "spring": list(range(80, 172)),  # Mar-May
+            "summer": list(range(172, 264)),  # Jun-Aug
+            "autumn": list(range(264, 356))   # Sep-Nov
+        }
+
+        seasonal_stats = {}
+        for season_name, days in seasons.items():
+            values = []
+            for doy in days:
+                for kp_bin in range(10):
+                    values.append(ensemble.climatology_table.get((doy, kp_bin), 0))
+
+            seasonal_stats[season_name] = {
+                "mean": round(np.mean(values), 2),
+                "std": round(np.std(values), 2),
+                "min": round(np.min(values), 2),
+                "max": round(np.max(values), 2)
+            }
+
+        return {
+            "metadata": {
+                "total_bins": len(ensemble.climatology_table),
+                "days": 365,
+                "kp_levels": 10,
+                "data_source": "Historical measurements 2015-2022",
+                "description": "Complete climatology table showing TEC patterns by day-of-year and Kp index"
+            },
+            "heatmap": heatmap_data,
+            "statistics": {
+                "by_kp_level": kp_stats,
+                "by_season": seasonal_stats
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating climatology heatmap: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Climatology heatmap generation failed: {str(e)}"
+        )

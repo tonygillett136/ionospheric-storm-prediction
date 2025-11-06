@@ -1,0 +1,482 @@
+.climatology-explorer {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.explorer-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.explorer-header h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.explorer-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Info Box */
+.info-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.info-box h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.info-box p {
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.info-box p:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+.key-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.key-point {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid rgba(255, 255, 255, 0.5);
+}
+
+.key-point strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab {
+  padding: 1rem 2rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+/* Controls */
+.controls {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.control-group select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.scenario-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Kp Selector */
+.kp-selector {
+  width: 100%;
+}
+
+.kp-selector label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.kp-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.kp-button {
+  padding: 0.5rem 1rem;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kp-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.kp-button.selected {
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading and Error States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-state {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.error-state button {
+  margin-top: 1rem;
+  padding: 0.5rem 1.5rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.error-state button:hover {
+  background: #b91c1c;
+}
+
+/* Chart Section */
+.chart-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.chart-section h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.chart-description {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-box {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Custom Tooltip */
+.custom-tooltip {
+  background: white;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tooltip-date {
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.tooltip-value {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.tooltip-doy {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Kp Statistics Table */
+.kp-stats-table {
+  margin-top: 2rem;
+}
+
+.kp-stats-table h4 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.kp-stats-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kp-stats-table th,
+.kp-stats-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.kp-stats-table th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.kp-stats-table td {
+  color: #1f2937;
+}
+
+.kp-indicator {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Seasonal Stats */
+.seasonal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.season-card {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+}
+
+.season-card h4 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.season-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.season-stat:last-child {
+  border-bottom: none;
+}
+
+.season-stat .label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.season-stat .value {
+  color: #1f2937;
+  font-weight: bold;
+}
+
+/* Explorer Footer */
+.explorer-footer {
+  background: #f9fafb;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.explorer-footer h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.explorer-footer p {
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.footer-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.footer-stat {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-stat strong {
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.footer-stat span {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .climatology-explorer {
+    padding: 1rem;
+  }
+
+  .explorer-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .info-box {
+    padding: 1.5rem;
+  }
+
+  .key-points {
+    grid-template-columns: 1fr;
+  }
+
+  .view-tabs {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .seasonal-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-stats {
+    grid-template-columns: 1fr;
+  }
+}

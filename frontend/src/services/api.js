@@ -117,6 +117,26 @@ class APIService {
     }
   }
 
+  async exploreClimatology(params = {}) {
+    try {
+      const response = await this.axiosInstance.get('/climatology/explore', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching climatology data:', error);
+      throw error;
+    }
+  }
+
+  async getClimatologyHeatmap() {
+    try {
+      const response = await this.axiosInstance.get('/climatology/heatmap');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching climatology heatmap:', error);
+      throw error;
+    }
+  }
+
   // Generic HTTP methods for custom endpoints
   async get(endpoint) {
     try {

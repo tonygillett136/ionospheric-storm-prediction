@@ -16,6 +16,7 @@ import BacktestWorkshop from './components/BacktestWorkshop';
 import ImpactDashboard from './components/ImpactDashboard';
 import RegionalPrediction from './components/RegionalPrediction';
 import EnsembleComparison from './components/EnsembleComparison';
+import ClimatologyExplorer from './components/ClimatologyExplorer';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -291,6 +292,23 @@ function App() {
           >
             🔮 Ensemble Model
           </button>
+          <button
+            onClick={() => setActiveView('climatology')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'climatology' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'climatology' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'climatology' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'climatology' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            📚 Climatology Explorer
+          </button>
         </div>
       </header>
 
@@ -534,6 +552,9 @@ function App() {
 
         {/* Ensemble Model View */}
         {activeView === 'ensemble' && <EnsembleComparison />}
+
+        {/* Climatology Explorer View */}
+        {activeView === 'climatology' && <ClimatologyExplorer />}
       </main>
 
       <style>{`
