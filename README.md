@@ -53,11 +53,18 @@ This system provides critical space weather forecasting for applications in:
 - **Fast Queries** - Indexed retrieval across any time range
 - **Authoritative Sources** - GFZ Potsdam (Kp), Kyoto WDC (Dst), NASA spacecraft
 
-### 📚 Educational Content
-- Comprehensive current conditions dashboard
-- Detailed glossary of 25+ technical terms
-- Expandable information panels
-- Contextual tooltips throughout the interface
+### 📚 Educational Features
+- **Climatology Explorer** - Interactive exploration of TEC patterns with seasonal analysis
+  - Time series forecasting up to 2 years ahead
+  - Kp comparison across geomagnetic activity levels
+  - Seasonal pattern visualization
+- **Historical Storm Gallery** - Curated major storms (2015-2025) with real measurements
+  - 6 significant events including Mother's Day 2024 G5 storm
+  - Actual time-series data (Kp, TEC, Solar Wind)
+  - Real-world impact stories
+- **Comprehensive Dashboard** - Current conditions and glossary
+- **25+ Technical Terms** - Detailed explanations
+- **Contextual Tooltips** - Throughout the interface
 
 ## Quick Start
 
