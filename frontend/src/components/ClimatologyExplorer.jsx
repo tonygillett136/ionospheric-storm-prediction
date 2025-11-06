@@ -89,7 +89,8 @@ const ClimatologyExplorer = () => {
       season: season.charAt(0).toUpperCase() + season.slice(1),
       mean: stats.mean,
       min: stats.min,
-      max: stats.max
+      max: stats.max,
+      range: stats.max - stats.min
     }));
   };
 
@@ -416,31 +417,72 @@ const ClimatologyExplorer = () => {
             <div className="chart-section">
               <h3>Seasonal Patterns in Ionospheric TEC</h3>
               <p className="chart-description">
-                TEC exhibits strong seasonal variations due to changes in solar angle,
-                atmospheric composition, and ionization rates throughout the year.
+                While mean TEC values are relatively stable across seasons (averaging ~10 TECU),
+                the <strong>variability</strong> and range show distinct seasonal patterns.
+                This chart shows the full range of TEC values (min to max) observed in each season.
               </p>
 
               <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={getSeasonalData()}>
                   <defs>
-                    <linearGradient id="colorSeason" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorSeasonMax" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.2}/>
+                    </linearGradient>
+                    <linearGradient id="colorSeasonMin" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="season" />
                   <YAxis
                     label={{ value: 'TEC (TECU)', angle: -90, position: 'insideLeft' }}
+                    domain={[0, 20]}
                   />
-                  <Tooltip />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="custom-tooltip">
+                            <p className="tooltip-date"><strong>{data.season}</strong></p>
+                            <p className="tooltip-value">Range: {data.min} - {data.max} TECU</p>
+                            <p className="tooltip-value">Mean: {data.mean} TECU</p>
+                            <p className="tooltip-doy">Variability: {data.range.toFixed(1)} TECU</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="max"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorSeasonMax)"
+                    name="Maximum TEC"
+                  />
                   <Area
                     type="monotone"
                     dataKey="mean"
-                    stroke="#10b981"
-                    fillOpacity={1}
-                    fill="url(#colorSeason)"
+                    stroke="#fbbf24"
+                    strokeWidth={2}
+                    fill="transparent"
                     name="Mean TEC"
+                    strokeDasharray="5 5"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="min"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorSeasonMin)"
+                    name="Minimum TEC"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -458,8 +500,26 @@ const ClimatologyExplorer = () => {
                       <span className="label">Range:</span>
                       <span className="value">{season.min} - {season.max} TECU</span>
                     </div>
+                    <div className="season-stat">
+                      <span className="label">Variability:</span>
+                      <span className="value">{season.range.toFixed(1)} TECU</span>
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="info-box" style={{ marginTop: '2rem' }}>
+                <h4>Understanding Seasonal Patterns</h4>
+                <p>
+                  <strong>Why are the means so similar?</strong> The seasonal averages (~10 TECU)
+                  are calculated across all geomagnetic conditions (Kp 0-9), which smooths out variations.
+                  However, the <em>range</em> and <em>variability</em> differ significantly by season.
+                </p>
+                <p>
+                  <strong>Key insight:</strong> Spring and Autumn show the highest TEC values (up to ~19 TECU)
+                  during storm conditions, while minimum values remain relatively consistent across seasons.
+                  This reflects the "equinoctial effect" where ionospheric activity peaks during equinoxes.
+                </p>
               </div>
             </div>
           )}
