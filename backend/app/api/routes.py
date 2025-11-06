@@ -6,6 +6,7 @@ from typing import List
 import asyncio
 import json
 import logging
+import numpy as np
 from datetime import datetime, timedelta
 
 from app.services.data_service import DataService
