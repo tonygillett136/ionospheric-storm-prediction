@@ -386,7 +386,7 @@ const RecentStormPerformance = () => {
 
                                 return (
                                   <>
-                                    <h4>Storm Evolution (±6 hours context)</h4>
+                                    <h4>Storm Evolution</h4>
                                     <div style={{ marginBottom: '0.5rem', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                                       <span style={{ color: '#ef4444', fontWeight: 'bold' }}>⚡ Storm Period:</span>{' '}
                                       <span style={{ color: '#e2e8f0' }}>
@@ -395,6 +395,9 @@ const RecentStormPerformance = () => {
                                       <span style={{ color: '#94a3b8', marginLeft: '1rem' }}>
                                         ({stormInfo.duration_hours} hours)
                                       </span>
+                                    </div>
+                                    <div style={{ marginBottom: '0.5rem', padding: '0.25rem 0.5rem', background: 'rgba(100, 116, 139, 0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                                      Chart shows storm period with build-up and recovery phases (storm occupies ~50% of timeline)
                                     </div>
                                     <div className="chart-container">
                                       <ResponsiveContainer width="100%" height={300}>

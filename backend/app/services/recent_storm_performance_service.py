@@ -229,9 +229,14 @@ class RecentStormPerformanceService:
                 storm_mae = None
                 detection_rate = 0.0
 
-            # Get actual measurements with context (6 hours before/after storm)
-            context_start = storm_start - timedelta(hours=6)
-            context_end = storm_end + timedelta(hours=6)
+            # Get actual measurements with context
+            # Storm should take ~50% of chart, with 25% on either side
+            # So context = 0.5 * storm_duration on each side
+            storm_duration_hours = storm_info['duration_hours']
+            context_hours = max(3, storm_duration_hours * 0.5)  # Minimum 3 hours context
+
+            context_start = storm_start - timedelta(hours=context_hours)
+            context_end = storm_end + timedelta(hours=context_hours)
 
             context_measurements = await HistoricalDataRepository.get_measurements_by_time_range(
                 session, context_start, context_end

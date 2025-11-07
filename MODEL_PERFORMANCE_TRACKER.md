@@ -54,11 +54,12 @@ The **Model Performance Tracker** is a feature that catalogs recent geomagnetic 
 - TEC response during storm
 - Model performance metrics with visual indicators
 - Success/failure indicators for detection
-- **Storm Evolution Chart**: Time series visualization with ±6 hours context
+- **Storm Evolution Chart**: Time series visualization with dynamic context
   - Dual-axis chart (Kp Index and TEC)
   - Storm period info banner showing exact start/end times
   - Visual markers: thin red bar (⚡ Storm Start) and green bar (Storm End ✓)
   - 24-hour time format (international standard)
+  - Dynamic context: storm occupies ~50% of timeline, with 25% build-up and 25% recovery
   - Interactive Recharts visualization with ComposedChart
 
 **Controls:**
@@ -272,7 +273,10 @@ Response:
 7. **Review** detailed storm information:
    - Storm metadata (times, duration, peak Kp)
    - Model performance metrics (if analysis enabled)
-   - **Storm Evolution Chart**: Visual timeline with ±6 hours context
+   - **Storm Evolution Chart**: Visual timeline with dynamic context
+     - Chart automatically scales: storm period occupies ~50% of timeline
+     - 25% of chart shows build-up phase before storm
+     - 25% of chart shows recovery phase after storm
      - Yellow line: Kp Index evolution
      - Blue line: TEC response
      - Red marker: Storm start
@@ -283,9 +287,10 @@ Response:
    - Yellow line shows Kp Index evolution
    - Blue line shows TEC response
    - All times displayed in 24-hour format
-   - See storm build-up phase (6 hours before)
-   - Observe peak activity during storm
-   - Watch recovery phase (6 hours after)
+   - Context scales with storm duration (longer storms = more context)
+   - Observe pre-storm conditions and build-up patterns
+   - Watch storm evolution and peak activity
+   - See post-storm recovery to normal levels
 
 ## Performance Considerations
 
