@@ -160,7 +160,12 @@ class APIService {
   // Recent Storm Performance API
   async getRecentStorms(params = {}) {
     try {
-      const response = await this.axiosInstance.get('/storms/recent', { params });
+      // Use longer timeout for performance analysis (up to 2 minutes)
+      const timeout = params.analyze_performance ? 120000 : 10000;
+      const response = await this.axiosInstance.get('/storms/recent', {
+        params,
+        timeout
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching recent storms:', error);
@@ -170,8 +175,10 @@ class APIService {
 
   async getStormPerformance(stormId, modelVersion = 'v2') {
     try {
+      // Use longer timeout for performance analysis (up to 1 minute)
       const response = await this.axiosInstance.get(`/storms/recent/${stormId}/performance`, {
-        params: { model_version: modelVersion }
+        params: { model_version: modelVersion },
+        timeout: 60000
       });
       return response.data;
     } catch (error) {
