@@ -2,9 +2,13 @@
 
 All notable changes to the Ionospheric Storm Prediction System.
 
-## [Unreleased]
+> **Note**: This changelog focuses on active development. For historical versions (deadwood), see [Historical Versions](#historical-versions-deadwood) below.
 
-## [2.1.0] - 2025-11-06
+---
+
+## Current Version
+
+## [2.1.0] - 2025-11-06 (CURRENT)
 
 ### Added - Storm Gallery Feature
 - **Historical Storm Gallery** with 6 curated major geomagnetic storms (2015-2025)
@@ -71,6 +75,19 @@ All notable changes to the Ionospheric Storm Prediction System.
   - `getClimatologyHeatmap()`
   - `getStormGallery()`
   - `getStormDetails()`
+
+---
+
+## [Unreleased]
+
+*No unreleased changes at this time. All recent work has been released in v2.1.0.*
+
+---
+
+## Historical Versions (Deadwood)
+
+<details>
+<summary>Click to expand historical versions (v2.0.0 and earlier)</summary>
 
 ## [2.0.0] - 2025-11-02
 
@@ -212,6 +229,10 @@ All notable changes to the Ionospheric Storm Prediction System.
   - README, QUICKSTART, SETUP
   - API documentation
   - Technical overview
+
+</details>
+
+---
 
 ## Version Numbering
 
