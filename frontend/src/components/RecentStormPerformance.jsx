@@ -43,26 +43,26 @@ const RecentStormPerformance = () => {
   };
 
   const handleStormClick = async (storm) => {
-    if (selectedStorm && selectedStorm.storm_id === storm.storm_info.storm_id) {
+    if (selectedStorm && selectedStorm.storm_info && selectedStorm.storm_info.storm_id === storm.storm_info.storm_id) {
       setSelectedStorm(null);
       setPerformanceDetails(null);
       return;
     }
 
     setSelectedStorm(storm);
+    setPerformanceDetails(null);  // Clear previous details
 
-    if (!storm.model_performance && !analyzePerformance) {
-      try {
-        setLoadingPerformance(true);
-        const perfData = await API.getStormPerformance(storm.storm_info.storm_id);
-        setPerformanceDetails(perfData);
-      } catch (err) {
-        console.error('Error loading performance:', err);
-      } finally {
-        setLoadingPerformance(false);
-      }
-    } else {
+    // Always fetch individual performance details to get measurements for chart
+    try {
+      setLoadingPerformance(true);
+      const perfData = await API.getStormPerformance(storm.storm_info.storm_id);
+      setPerformanceDetails(perfData);
+    } catch (err) {
+      console.error('Error loading performance:', err);
+      // Fall back to storm data if available (without chart)
       setPerformanceDetails(storm);
+    } finally {
+      setLoadingPerformance(false);
     }
   };
 
@@ -336,14 +336,17 @@ const RecentStormPerformance = () => {
                                   <h4>Storm Evolution (±6 hours context)</h4>
                                   <div className="chart-container">
                                     <ResponsiveContainer width="100%" height={300}>
-                                      <LineChart data={performanceDetails.measurements.map(m => ({
+                                      <LineChart data={performanceDetails.measurements.map((m, idx) => ({
                                         ...m,
+                                        index: idx,
                                         time: new Date(m.timestamp).toLocaleTimeString('en-GB', {
                                           month: 'short',
                                           day: 'numeric',
                                           hour: '2-digit',
                                           minute: '2-digit'
-                                        })
+                                        }),
+                                        isStormStart: m.timestamp === stormInfo.start_time,
+                                        isStormEnd: m.timestamp === stormInfo.end_time
                                       }))}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
                                         <XAxis
@@ -377,29 +380,6 @@ const RecentStormPerformance = () => {
                                         />
                                         <Legend
                                           wrapperStyle={{ color: '#cbd5e1' }}
-                                        />
-                                        {/* Storm period reference lines */}
-                                        <ReferenceLine
-                                          x={new Date(stormInfo.start_time).toLocaleTimeString('en-GB', {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                          stroke="#ef4444"
-                                          strokeDasharray="3 3"
-                                          label={{ value: 'Storm Start', fill: '#ef4444', fontSize: 11 }}
-                                        />
-                                        <ReferenceLine
-                                          x={new Date(stormInfo.end_time).toLocaleTimeString('en-GB', {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                          stroke="#10b981"
-                                          strokeDasharray="3 3"
-                                          label={{ value: 'Storm End', fill: '#10b981', fontSize: 11 }}
                                         />
                                         <Line
                                           yAxisId="left"
