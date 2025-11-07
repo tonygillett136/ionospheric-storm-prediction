@@ -169,6 +169,7 @@
   width: 40px;
   font-weight: 600;
   color: #e2e8f0;
+  cursor: help;
 }
 
 .severity-bar-track {
@@ -182,6 +183,7 @@
 .severity-bar-fill {
   height: 100%;
   transition: width 0.3s ease;
+  cursor: help;
 }
 
 .severity-count {
@@ -243,6 +245,7 @@
   font-weight: 600;
   font-size: 0.85rem;
   color: white;
+  cursor: help;
 }
 
 .details-button {

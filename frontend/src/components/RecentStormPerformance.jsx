@@ -72,6 +72,17 @@ const RecentStormPerformance = () => {
     return colors[gScale] || '#9ca3af';
   };
 
+  const getSeverityDescription = (gScale) => {
+    const descriptions = {
+      'G1': 'Minor - Weak power grid fluctuations, minor aurora at high latitudes',
+      'G2': 'Moderate - High-latitude power systems affected, aurora visible in northern US',
+      'G3': 'Strong - Voltage control problems, aurora at mid-latitudes, satellite issues',
+      'G4': 'Severe - Widespread voltage problems, aurora at lower latitudes, GPS errors',
+      'G5': 'Extreme - Complete power grid failures possible, aurora visible near equator'
+    };
+    return descriptions[gScale] || 'Unknown severity level';
+  };
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleString('en-US', {
       month: 'short',
@@ -160,21 +171,26 @@ const RecentStormPerformance = () => {
           <div className="severity-distribution">
             <h4>Severity Distribution</h4>
             <div className="severity-bars">
-              {Object.entries(catalog.severity_distribution).map(([scale, count]) => (
-                <div key={scale} className="severity-bar-item">
-                  <span className="severity-label">{scale}</span>
-                  <div className="severity-bar-track">
-                    <div
-                      className="severity-bar-fill"
-                      style={{
-                        width: `${(count / catalog.storm_count) * 100}%`,
-                        backgroundColor: getSeverityColor(scale)
-                      }}
-                    />
+              {Object.entries(catalog.severity_distribution)
+                .sort((a, b) => a[0].localeCompare(b[0]))  // Sort G1 to G5
+                .map(([scale, count]) => (
+                  <div key={scale} className="severity-bar-item">
+                    <span className="severity-label" title={getSeverityDescription(scale)}>
+                      {scale}
+                    </span>
+                    <div className="severity-bar-track">
+                      <div
+                        className="severity-bar-fill"
+                        style={{
+                          width: `${(count / catalog.storm_count) * 100}%`,
+                          backgroundColor: getSeverityColor(scale)
+                        }}
+                        title={getSeverityDescription(scale)}
+                      />
+                    </div>
+                    <span className="severity-count">{count}</span>
                   </div>
-                  <span className="severity-count">{count}</span>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </div>
@@ -210,6 +226,7 @@ const RecentStormPerformance = () => {
                       <span
                         className="severity-badge"
                         style={{ backgroundColor: getSeverityColor(stormInfo.g_scale) }}
+                        title={getSeverityDescription(stormInfo.g_scale)}
                       >
                         {stormInfo.g_scale}
                       </span>
