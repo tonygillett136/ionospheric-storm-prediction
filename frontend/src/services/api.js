@@ -157,6 +157,29 @@ class APIService {
     }
   }
 
+  // Recent Storm Performance API
+  async getRecentStorms(params = {}) {
+    try {
+      const response = await this.axiosInstance.get('/storms/recent', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent storms:', error);
+      throw error;
+    }
+  }
+
+  async getStormPerformance(stormId, modelVersion = 'v2') {
+    try {
+      const response = await this.axiosInstance.get(`/storms/recent/${stormId}/performance`, {
+        params: { model_version: modelVersion }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching performance for storm ${stormId}:`, error);
+      throw error;
+    }
+  }
+
   // Generic HTTP methods for custom endpoints
   async get(endpoint) {
     try {

@@ -18,6 +18,7 @@ import RegionalPrediction from './components/RegionalPrediction';
 import EnsembleComparison from './components/EnsembleComparison';
 import ClimatologyExplorer from './components/ClimatologyExplorer';
 import StormGallery from './components/StormGallery';
+import RecentStormPerformance from './components/RecentStormPerformance';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -327,6 +328,23 @@ function App() {
           >
             ⚡ Storm Gallery
           </button>
+          <button
+            onClick={() => setActiveView('performance')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'performance' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'performance' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'performance' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'performance' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            📊 Model Performance
+          </button>
         </div>
       </header>
 
@@ -576,6 +594,9 @@ function App() {
 
         {/* Storm Gallery View */}
         {activeView === 'storms' && <StormGallery />}
+
+        {/* Recent Storm Performance View */}
+        {activeView === 'performance' && <RecentStormPerformance />}
       </main>
 
       <style>{`

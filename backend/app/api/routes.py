@@ -14,6 +14,7 @@ from app.services.backtesting_service import BacktestingService
 from app.services.impact_assessment_service import ImpactAssessmentService
 from app.services.regional_prediction_service import RegionalPredictionService
 from app.services.alert_service import AlertService
+from app.services.recent_storm_performance_service import RecentStormPerformanceService
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1176,6 +1177,156 @@ async def get_storm_gallery():
         raise HTTPException(
             status_code=500,
             detail=f"Storm gallery failed: {str(e)}"
+        )
+
+
+# Recent Storm Performance endpoints (must be before /storms/{storm_id})
+@router.get("/storms/recent")
+async def get_recent_storms(
+    days_back: int = 365,
+    kp_threshold: float = 5.0,
+    analyze_performance: bool = False,
+    model_version: str = 'v2',
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get catalog of recent storms (up to 1 year back) with optional model performance analysis.
+
+    This endpoint detects storms based on Kp index and optionally evaluates how well
+    the prediction model performed on each storm.
+
+    Query Parameters:
+    - days_back: How many days to look back (default 365, max 365)
+    - kp_threshold: Kp index threshold for storm detection (default 5.0 = G1 minor)
+    - analyze_performance: Run model performance analysis on each storm (slower, default false)
+    - model_version: Model version to use for analysis ('v1' or 'v2', default 'v2')
+
+    Returns:
+    - List of detected storms with metadata (severity, duration, peak Kp, etc.)
+    - If analyze_performance=true: includes model prediction accuracy for each storm
+    - Aggregate statistics (severity distribution, strongest storm, etc.)
+
+    Performance analysis includes:
+    - Whether model detected the storm
+    - How many hours in advance it was detected
+    - Prediction accuracy (RMSE, MAE)
+    - Detection rate during storm
+    """
+    try:
+        # Limit to 365 days
+        if days_back > 365:
+            days_back = 365
+
+        # Validate Kp threshold
+        if kp_threshold < 0 or kp_threshold > 9:
+            raise HTTPException(status_code=400, detail="kp_threshold must be between 0 and 9")
+
+        logger.info(f"Getting recent storms: days_back={days_back}, kp_threshold={kp_threshold}, analyze={analyze_performance}")
+
+        # Create service instance
+        service = RecentStormPerformanceService(model_version=model_version)
+
+        # Get storm catalog
+        catalog = await service.get_recent_storm_catalog(
+            db,
+            days_back=days_back,
+            kp_threshold=kp_threshold,
+            analyze_performance=analyze_performance
+        )
+
+        return catalog
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting recent storms: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get recent storms: {str(e)}"
+        )
+
+
+@router.get("/storms/recent/{storm_id}/performance")
+async def get_storm_performance(
+    storm_id: str,
+    model_version: str = 'v2',
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get detailed model performance analysis for a specific recent storm.
+
+    This endpoint analyzes how well the model predicted a specific storm by:
+    1. Running the model retrospectively with data available before the storm
+    2. Comparing predictions to actual storm evolution
+    3. Calculating performance metrics
+
+    Path Parameters:
+    - storm_id: Storm identifier (format: storm_YYYYMMDD_HHMM)
+
+    Query Parameters:
+    - model_version: Model version to use ('v1' or 'v2', default 'v2')
+
+    Returns:
+    - Storm metadata (start time, peak Kp, duration, severity)
+    - Model performance metrics:
+      - Detection: whether storm was detected and how early
+      - Accuracy: RMSE and MAE during storm period
+      - Detection rate: percentage of storm duration model predicted correctly
+    - Detailed prediction time series (predicted vs actual)
+    """
+    try:
+        logger.info(f"Analyzing performance for storm: {storm_id}")
+
+        # Parse storm ID to extract timestamp
+        # Format: storm_YYYYMMDD_HHMM
+        if not storm_id.startswith('storm_'):
+            raise HTTPException(status_code=400, detail="Invalid storm_id format")
+
+        timestamp_str = storm_id.replace('storm_', '')
+        try:
+            storm_start = datetime.strptime(timestamp_str, '%Y%m%d_%H%M')
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid storm_id timestamp format")
+
+        # Look for this storm in recent data (search +/- 24 hours)
+        search_start = storm_start - timedelta(hours=24)
+        search_end = storm_start + timedelta(hours=72)  # storms can last up to 3 days
+
+        # Create service and detect storms in this window
+        service = RecentStormPerformanceService(model_version=model_version)
+        storms = await service.detect_storms(
+            db,
+            start_date=search_start,
+            end_date=search_end,
+            kp_threshold=5.0,
+            min_duration_hours=1
+        )
+
+        # Find the storm matching this ID
+        matching_storm = None
+        for storm in storms:
+            if storm['storm_id'] == storm_id:
+                matching_storm = storm
+                break
+
+        if not matching_storm:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Storm {storm_id} not found in database"
+            )
+
+        # Analyze performance for this storm
+        analysis = await service.analyze_storm_performance(db, matching_storm)
+
+        return analysis
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing storm performance: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to analyze storm performance: {str(e)}"
         )
 
 
