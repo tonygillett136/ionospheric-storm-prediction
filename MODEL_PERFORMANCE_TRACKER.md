@@ -43,22 +43,34 @@ The **Model Performance Tracker** is a feature that catalogs recent geomagnetic 
 ### Interactive UI
 
 **Main View:**
-- Table of recent storms with key metrics
-- Sortable and filterable storm list
-- Severity badges (color-coded G1-G5)
+- Table of recent storms sorted by date (latest first)
+- Severity badges (color-coded G1-G5) with tooltips
 - Summary statistics (total storms, average duration, strongest storm)
-- Severity distribution chart
+- Severity distribution chart (ordered G1 → G5)
+- Loading states with "Calculating..." indicators during analysis
 
 **Storm Details (Expandable):**
 - Full storm timeline (start, peak, end times)
 - TEC response during storm
 - Model performance metrics with visual indicators
 - Success/failure indicators for detection
+- **Storm Evolution Chart**: Time series visualization with ±6 hours context
+  - Dual-axis chart (Kp Index and TEC)
+  - Storm period info banner showing exact start/end times
+  - Visual markers: thin red bar (⚡ Storm Start) and green bar (Storm End ✓)
+  - 24-hour time format (international standard)
+  - Interactive Recharts visualization with ComposedChart
 
 **Controls:**
 - Time period selector (30/90/180/365 days)
-- Performance analysis toggle (on-demand for faster loading)
+- Performance analysis toggle: "Analyse model performance (slower)" (UK English)
 - Refresh button
+
+**User Experience Features:**
+- **Tooltips**: Hover over G1-G5 badges for severity descriptions
+- **Sorting**: Storms displayed latest first
+- **Loading Feedback**: "Calculating..." shown during performance analysis
+- **Visual Context**: Chart shows storm build-up and recovery phases
 
 ## Technical Implementation
 
@@ -123,11 +135,14 @@ async getStormPerformance(stormId, modelVersion)  // Get specific storm performa
 4. Fill values filtered out (Kp > 9.0 excluded)
 
 **Severity Classification (NOAA G-Scale):**
-- **G1 (Minor)**: Kp 5
-- **G2 (Moderate)**: Kp 6
-- **G3 (Strong)**: Kp 7
-- **G4 (Severe)**: Kp 8
-- **G5 (Extreme)**: Kp 9
+- **G1 (Minor)**: Kp 5 - Weak power grid fluctuations, minor aurora at high latitudes
+- **G2 (Moderate)**: Kp 6 - High-latitude power systems affected, aurora visible in northern US
+- **G3 (Strong)**: Kp 7 - Voltage control problems, aurora at mid-latitudes, satellite issues
+- **G4 (Severe)**: Kp 8 - Widespread voltage problems, aurora at lower latitudes, GPS errors
+- **G5 (Extreme)**: Kp 9 - Complete power grid failures possible, aurora visible near equator
+
+**Interactive Tooltips:**
+All G-scale indicators (badges, labels, bars) include hover tooltips with these descriptions for easy reference.
 
 ## Model Performance Evaluation
 
@@ -246,11 +261,31 @@ Response:
 
 1. **Navigate** to "📊 Model Performance" tab
 2. **Select** time period (30/90/180/365 days)
-3. **Toggle** "Analyze model performance" for detailed metrics (slower)
+3. **Toggle** "Analyse model performance" for detailed metrics (slower)
+   - Notice UK English spelling
+   - Watch for "Calculating..." indicators while loading
 4. **Click "Refresh"** to load storm catalog
 5. **View** summary statistics and severity distribution
+   - Storms sorted latest first
+   - Hover over G-scale badges for severity descriptions
 6. **Click** on any storm row to expand details
-7. **Review** model performance metrics for each storm
+7. **Review** detailed storm information:
+   - Storm metadata (times, duration, peak Kp)
+   - Model performance metrics (if analysis enabled)
+   - **Storm Evolution Chart**: Visual timeline with ±6 hours context
+     - Yellow line: Kp Index evolution
+     - Blue line: TEC response
+     - Red marker: Storm start
+     - Green marker: Storm end
+8. **Interpret** the chart:
+   - Red vertical bar (⚡) marks storm start
+   - Green vertical bar (✓) marks storm end
+   - Yellow line shows Kp Index evolution
+   - Blue line shows TEC response
+   - All times displayed in 24-hour format
+   - See storm build-up phase (6 hours before)
+   - Observe peak activity during storm
+   - Watch recovery phase (6 hours after)
 
 ## Performance Considerations
 
@@ -269,7 +304,12 @@ Response:
 - Start with `analyze_performance=false` to browse storms
 - Enable performance analysis only when needed
 - Use shorter time periods for faster results
-- Cache results on frontend to avoid re-analysis
+- Extended timeout: 120 seconds for analysis, 60 seconds for individual storm
+
+**API Timeouts:**
+- Default requests: 10 seconds
+- With `analyze_performance=true`: 120 seconds
+- Individual storm performance: 60 seconds
 
 ## Files
 
@@ -341,7 +381,35 @@ Response:
 - `BACKTESTING.md` - General backtesting capabilities
 - `API_REFERENCE.md` - Complete API documentation
 
+## Version History
+
+**Initial Release (v1.0.0):**
+- Storm detection and cataloging
+- Model performance analysis
+- Basic table view with expandable details
+- API endpoints for storm data
+
+**Enhancement Updates:**
+- **Timeout Fix**: Extended API timeouts (120s for analysis, 60s for individual storms)
+- **G-Scale Tooltips**: Added hover descriptions for all severity indicators
+- **Severity Ordering**: Fixed distribution chart to show G1 → G5 in order
+- **Storm Sorting**: Storms now displayed latest first (reverse chronological)
+- **UK English**: Changed "Analyze" to "Analyse" throughout UI
+- **Loading States**: "Calculating..." shown during performance analysis instead of confusing placeholders
+- **Storm Evolution Chart**: Added time series visualization with ±6 hours context
+  - Dual-axis chart (Kp and TEC)
+  - Storm period info banner with exact times
+  - Visual markers: thin red/green vertical bars for storm start/end
+  - 24-hour time format (international standard)
+  - ComposedChart implementation for reliable rendering
+- **Bug Fixes**:
+  - Fixed blank screen issue when expanding storm details
+  - Resolved chart rendering problems with reference components
+  - Ensured always fetches measurements data for chart display
+
 ## Credits
 
 Model Performance Tracker feature implemented November 2025.
 Builds on existing backtesting infrastructure and historical data from NASA OMNI database (2015-2025).
+
+All enhancements completed November 2025.

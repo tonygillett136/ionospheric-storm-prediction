@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import API from '../services/api';
 import '../styles/RecentStormPerformance.css';
 
@@ -331,79 +331,148 @@ const RecentStormPerformance = () => {
                               )}
 
                               {/* Storm Context Chart */}
-                              {performanceDetails?.measurements && performanceDetails.measurements.length > 0 && (
-                                <>
-                                  <h4>Storm Evolution (±6 hours context)</h4>
-                                  <div className="chart-container">
-                                    <ResponsiveContainer width="100%" height={300}>
-                                      <LineChart data={performanceDetails.measurements.map((m, idx) => ({
-                                        ...m,
-                                        index: idx,
-                                        time: new Date(m.timestamp).toLocaleTimeString('en-GB', {
-                                          month: 'short',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        }),
-                                        isStormStart: m.timestamp === stormInfo.start_time,
-                                        isStormEnd: m.timestamp === stormInfo.end_time
-                                      }))}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
-                                        <XAxis
-                                          dataKey="time"
-                                          stroke="#94a3b8"
-                                          tick={{ fill: '#94a3b8', fontSize: 11 }}
-                                          angle={-45}
-                                          textAnchor="end"
-                                          height={80}
-                                        />
-                                        <YAxis
-                                          yAxisId="left"
-                                          stroke="#fbbf24"
-                                          tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                          label={{ value: 'Kp Index', angle: -90, position: 'insideLeft', fill: '#fbbf24' }}
-                                        />
-                                        <YAxis
-                                          yAxisId="right"
-                                          orientation="right"
-                                          stroke="#3b82f6"
-                                          tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                          label={{ value: 'TEC (TECU)', angle: 90, position: 'insideRight', fill: '#3b82f6' }}
-                                        />
-                                        <Tooltip
-                                          contentStyle={{
-                                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                                            border: '1px solid rgba(100, 116, 139, 0.3)',
-                                            borderRadius: '8px',
-                                            color: '#e2e8f0'
-                                          }}
-                                        />
-                                        <Legend
-                                          wrapperStyle={{ color: '#cbd5e1' }}
-                                        />
-                                        <Line
-                                          yAxisId="left"
-                                          type="monotone"
-                                          dataKey="kp_index"
-                                          stroke="#fbbf24"
-                                          strokeWidth={2}
-                                          name="Kp Index"
-                                          dot={false}
-                                        />
-                                        <Line
-                                          yAxisId="right"
-                                          type="monotone"
-                                          dataKey="tec_mean"
-                                          stroke="#3b82f6"
-                                          strokeWidth={2}
-                                          name="TEC"
-                                          dot={false}
-                                        />
-                                      </LineChart>
-                                    </ResponsiveContainer>
-                                  </div>
-                                </>
-                              )}
+                              {performanceDetails?.measurements && performanceDetails.measurements.length > 0 && (() => {
+                                const stormStartTime = new Date(stormInfo.start_time).getTime();
+                                const stormEndTime = new Date(stormInfo.end_time).getTime();
+
+                                // Find max Kp for scaling the storm indicator
+                                const maxKp = Math.max(...performanceDetails.measurements.map(m => m.kp_index));
+
+                                // Find storm start and end indices
+                                let stormStartIdx = -1;
+                                let stormEndIdx = -1;
+                                let minStartDiff = Infinity;
+                                let minEndDiff = Infinity;
+
+                                const chartData = performanceDetails.measurements.map((m, idx) => {
+                                  const mTime = new Date(m.timestamp).getTime();
+
+                                  // Find closest point to storm start
+                                  const startDiff = Math.abs(mTime - stormStartTime);
+                                  if (startDiff < minStartDiff) {
+                                    minStartDiff = startDiff;
+                                    stormStartIdx = idx;
+                                  }
+
+                                  // Find closest point to storm end
+                                  const endDiff = Math.abs(mTime - stormEndTime);
+                                  if (endDiff < minEndDiff) {
+                                    minEndDiff = endDiff;
+                                    stormEndIdx = idx;
+                                  }
+
+                                  return {
+                                    ...m,
+                                    index: idx,
+                                    time: new Date(m.timestamp).toLocaleString('en-GB', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: false  // Use 24-hour format
+                                    }).replace(',', ''),  // Remove comma between date and time
+                                    stormStartMarker: null,  // Will be set below
+                                    stormEndMarker: null     // Will be set below
+                                  };
+                                });
+
+                                // Mark only the start and end points
+                                if (stormStartIdx >= 0) {
+                                  chartData[stormStartIdx].stormStartMarker = maxKp;
+                                }
+                                if (stormEndIdx >= 0 && stormEndIdx !== stormStartIdx) {
+                                  chartData[stormEndIdx].stormEndMarker = maxKp;
+                                }
+
+                                return (
+                                  <>
+                                    <h4>Storm Evolution (±6 hours context)</h4>
+                                    <div style={{ marginBottom: '0.5rem', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>⚡ Storm Period:</span>{' '}
+                                      <span style={{ color: '#e2e8f0' }}>
+                                        {formatDate(stormInfo.start_time)} → {formatDate(stormInfo.end_time)}
+                                      </span>
+                                      <span style={{ color: '#94a3b8', marginLeft: '1rem' }}>
+                                        ({stormInfo.duration_hours} hours)
+                                      </span>
+                                    </div>
+                                    <div className="chart-container">
+                                      <ResponsiveContainer width="100%" height={300}>
+                                        <ComposedChart data={chartData}>
+                                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
+                                          <XAxis
+                                            dataKey="time"
+                                            stroke="#94a3b8"
+                                            tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={80}
+                                          />
+                                          <YAxis
+                                            yAxisId="left"
+                                            stroke="#fbbf24"
+                                            tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                            label={{ value: 'Kp Index', angle: -90, position: 'insideLeft', fill: '#fbbf24' }}
+                                          />
+                                          <YAxis
+                                            yAxisId="right"
+                                            orientation="right"
+                                            stroke="#3b82f6"
+                                            tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                            label={{ value: 'TEC (TECU)', angle: 90, position: 'insideRight', fill: '#3b82f6' }}
+                                          />
+                                          <Tooltip
+                                            contentStyle={{
+                                              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                              border: '1px solid rgba(100, 116, 139, 0.3)',
+                                              borderRadius: '8px',
+                                              color: '#e2e8f0'
+                                            }}
+                                          />
+                                          <Legend
+                                            wrapperStyle={{ color: '#cbd5e1' }}
+                                          />
+                                          {/* Bar markers for storm start and end */}
+                                          <Bar
+                                            yAxisId="left"
+                                            dataKey="stormStartMarker"
+                                            fill="#ef4444"
+                                            fillOpacity={0.6}
+                                            name="⚡ Storm Start"
+                                            barSize={4}
+                                          />
+                                          <Bar
+                                            yAxisId="left"
+                                            dataKey="stormEndMarker"
+                                            fill="#10b981"
+                                            fillOpacity={0.6}
+                                            name="Storm End ✓"
+                                            barSize={4}
+                                          />
+                                          <Line
+                                            yAxisId="left"
+                                            type="monotone"
+                                            dataKey="kp_index"
+                                            stroke="#fbbf24"
+                                            strokeWidth={2}
+                                            name="Kp Index"
+                                            dot={false}
+                                          />
+                                          <Line
+                                            yAxisId="right"
+                                            type="monotone"
+                                            dataKey="tec_mean"
+                                            stroke="#3b82f6"
+                                            strokeWidth={2}
+                                            name="TEC"
+                                            dot={false}
+                                          />
+                                        </ComposedChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </>
                           )}
                         </div>
