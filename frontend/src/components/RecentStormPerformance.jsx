@@ -140,7 +140,7 @@ const RecentStormPerformance = () => {
               checked={analyzePerformance}
               onChange={(e) => setAnalyzePerformance(e.target.checked)}
             />
-            <span>Analyze model performance (slower)</span>
+            <span>Analyse model performance (slower)</span>
           </label>
         </div>
 
@@ -240,16 +240,20 @@ const RecentStormPerformance = () => {
                     <td>{stormInfo.avg_tec.toFixed(1)} TECU</td>
                     {analyzePerformance && (
                       <td>
-                        {storm.model_performance?.storm_detected !== null ? (
+                        {loading ? (
+                          <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Calculating...</span>
+                        ) : storm.model_performance?.storm_detected !== null ? (
                           storm.model_performance?.storm_detected ? '✓ Yes' : '✗ No'
                         ) : '-'}
                       </td>
                     )}
                     {analyzePerformance && (
                       <td>
-                        {storm.model_performance?.detection_lead_hours
-                          ? `${storm.model_performance.detection_lead_hours}h`
-                          : '-'}
+                        {loading ? (
+                          <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Calculating...</span>
+                        ) : storm.model_performance?.detection_lead_hours ? (
+                          `${storm.model_performance.detection_lead_hours}h`
+                        ) : '-'}
                       </td>
                     )}
                     <td>
