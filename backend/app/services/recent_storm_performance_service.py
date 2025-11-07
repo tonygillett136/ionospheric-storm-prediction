@@ -229,6 +229,26 @@ class RecentStormPerformanceService:
                 storm_mae = None
                 detection_rate = 0.0
 
+            # Get actual measurements with context (6 hours before/after storm)
+            context_start = storm_start - timedelta(hours=6)
+            context_end = storm_end + timedelta(hours=6)
+
+            context_measurements = await HistoricalDataRepository.get_measurements_by_time_range(
+                session, context_start, context_end
+            )
+
+            # Format measurements for chart
+            measurements_data = []
+            for m in context_measurements:
+                if m.kp_index < 99.0:  # Filter out fill values
+                    measurements_data.append({
+                        'timestamp': m.timestamp.isoformat(),
+                        'kp_index': round(float(m.kp_index), 2),
+                        'tec_mean': round(float(m.tec_mean), 2) if m.tec_mean < 999.0 else None,
+                        'solar_wind_speed': round(float(m.solar_wind_speed), 2) if m.solar_wind_speed < 9999.0 else None,
+                        'dst_index': round(float(m.dst_index), 2) if m.dst_index > -9999.0 else None
+                    })
+
             return {
                 'storm_id': storm_info['storm_id'],
                 'storm_info': storm_info,
@@ -242,6 +262,7 @@ class RecentStormPerformanceService:
                     'peak_prediction_accuracy': round(float(peak_pred_accuracy), 2) if peak_pred_accuracy is not None else None
                 },
                 'predictions': predictions,
+                'measurements': measurements_data,
                 'overall_metrics': backtest_result['metrics'],
                 'summary': backtest_result['summary']
             }

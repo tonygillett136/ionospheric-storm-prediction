@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import API from '../services/api';
 import '../styles/RecentStormPerformance.css';
 
@@ -325,6 +326,101 @@ const RecentStormPerformance = () => {
                                         </>
                                       );
                                     })()}
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Storm Context Chart */}
+                              {performanceDetails?.measurements && performanceDetails.measurements.length > 0 && (
+                                <>
+                                  <h4>Storm Evolution (±6 hours context)</h4>
+                                  <div className="chart-container">
+                                    <ResponsiveContainer width="100%" height={300}>
+                                      <LineChart data={performanceDetails.measurements.map(m => ({
+                                        ...m,
+                                        time: new Date(m.timestamp).toLocaleTimeString('en-GB', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })
+                                      }))}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.2)" />
+                                        <XAxis
+                                          dataKey="time"
+                                          stroke="#94a3b8"
+                                          tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                          angle={-45}
+                                          textAnchor="end"
+                                          height={80}
+                                        />
+                                        <YAxis
+                                          yAxisId="left"
+                                          stroke="#fbbf24"
+                                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                          label={{ value: 'Kp Index', angle: -90, position: 'insideLeft', fill: '#fbbf24' }}
+                                        />
+                                        <YAxis
+                                          yAxisId="right"
+                                          orientation="right"
+                                          stroke="#3b82f6"
+                                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                          label={{ value: 'TEC (TECU)', angle: 90, position: 'insideRight', fill: '#3b82f6' }}
+                                        />
+                                        <Tooltip
+                                          contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                            border: '1px solid rgba(100, 116, 139, 0.3)',
+                                            borderRadius: '8px',
+                                            color: '#e2e8f0'
+                                          }}
+                                        />
+                                        <Legend
+                                          wrapperStyle={{ color: '#cbd5e1' }}
+                                        />
+                                        {/* Storm period reference lines */}
+                                        <ReferenceLine
+                                          x={new Date(stormInfo.start_time).toLocaleTimeString('en-GB', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                          stroke="#ef4444"
+                                          strokeDasharray="3 3"
+                                          label={{ value: 'Storm Start', fill: '#ef4444', fontSize: 11 }}
+                                        />
+                                        <ReferenceLine
+                                          x={new Date(stormInfo.end_time).toLocaleTimeString('en-GB', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                          stroke="#10b981"
+                                          strokeDasharray="3 3"
+                                          label={{ value: 'Storm End', fill: '#10b981', fontSize: 11 }}
+                                        />
+                                        <Line
+                                          yAxisId="left"
+                                          type="monotone"
+                                          dataKey="kp_index"
+                                          stroke="#fbbf24"
+                                          strokeWidth={2}
+                                          name="Kp Index"
+                                          dot={false}
+                                        />
+                                        <Line
+                                          yAxisId="right"
+                                          type="monotone"
+                                          dataKey="tec_mean"
+                                          stroke="#3b82f6"
+                                          strokeWidth={2}
+                                          name="TEC"
+                                          dot={false}
+                                        />
+                                      </LineChart>
+                                    </ResponsiveContainer>
                                   </div>
                                 </>
                               )}
