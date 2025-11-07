@@ -29,7 +29,11 @@ const RecentStormPerformance = () => {
       });
 
       setCatalog(data);
-      setStorms(data.storms || []);
+      // Sort storms by start time, latest first
+      const sortedStorms = (data.storms || []).sort((a, b) => {
+        return new Date(b.storm_info.start_time) - new Date(a.storm_info.start_time);
+      });
+      setStorms(sortedStorms);
     } catch (err) {
       setError(err.message || 'Failed to load storms');
     } finally {
