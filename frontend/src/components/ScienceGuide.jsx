@@ -492,60 +492,6 @@ const ScienceGuide = () => {
       <div className="guide-content">
         {getChapterContent(activeChapter)}
       </div>
-
-      {/* Right Sidebar - Context Help */}
-      <div className="guide-context">
-        <div className="context-card">
-          <h3>💡 Quick Tip</h3>
-          <p>Click terms in <span className="highlight">yellow</span> to see definitions from the glossary.</p>
-        </div>
-
-        {currentData && (
-          <div className="context-card live-stats">
-            <h3>🔴 Live Conditions</h3>
-            <div className="stat-row">
-              <span className="stat-label">TEC:</span>
-              <span className="stat-value">{currentData.tec_mean?.toFixed(1) || '—'} TECU</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Kp:</span>
-              <span className="stat-value">{currentData.kp_index?.toFixed(1) || '—'}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">Solar Wind:</span>
-              <span className="stat-value">{currentData.solar_wind_speed || '—'} km/s</span>
-            </div>
-            <button className="view-dashboard">View Full Dashboard →</button>
-          </div>
-        )}
-
-        <div className="context-card">
-          <h3>🎯 Related Topics</h3>
-          <ul className="related-links">
-            {activeChapter === 1 && (
-              <>
-                <li onClick={() => setActiveChapter(2)}>→ How We Measure TEC</li>
-                <li onClick={() => setActiveChapter(7)}>→ Risk Assessment</li>
-              </>
-            )}
-            {activeChapter === 6 && (
-              <>
-                <li onClick={() => setActiveChapter(10)}>→ Regional Predictions</li>
-                <li onClick={() => setActiveChapter(11)}>→ Understanding Uncertainty</li>
-              </>
-            )}
-          </ul>
-        </div>
-
-        <div className="context-card">
-          <h3>📚 Resources</h3>
-          <ul className="resource-links">
-            <li><a href="/api/docs" target="_blank">API Documentation</a></li>
-            <li><a href="https://github.com/..." target="_blank">View on GitHub</a></li>
-            <li><a href="/scientific-review" target="_blank">Scientific Review</a></li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 };
