@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
-import Glossary from './Glossary';
+import GlossaryRedesigned from './GlossaryRedesigned';
 import './ScienceGuide.css';
 
 const ScienceGuide = () => {
@@ -312,7 +312,7 @@ const ScienceGuide = () => {
 
           {/* Chapter 14: Show full Glossary component */}
           {chapterId === 14 ? (
-            <Glossary />
+            <GlossaryRedesigned />
           ) : (
             <>
               {/* Placeholder for actual markdown content from SCIENCE_GUIDE.md */}

@@ -20,6 +20,7 @@ import EnsembleComparison from './components/EnsembleComparison';
 import ClimatologyExplorer from './components/ClimatologyExplorer';
 import StormGallery from './components/StormGallery';
 import RecentStormPerformance from './components/RecentStormPerformance';
+import ScienceGuide from './components/ScienceGuide';
 import api from './services/api';
 import { getEducationalContent } from './utils/educationalContent';
 
@@ -346,6 +347,23 @@ function App() {
           >
             📊 Model Performance
           </button>
+          <button
+            onClick={() => setActiveView('learn')}
+            style={{
+              padding: '12px 24px',
+              background: activeView === 'learn' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeView === 'learn' ? '3px solid #4a90e2' : '3px solid transparent',
+              color: activeView === 'learn' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
+              fontSize: '14px',
+              fontWeight: activeView === 'learn' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              borderRadius: '8px 8px 0 0'
+            }}
+          >
+            📚 Learn
+          </button>
         </div>
       </header>
 
@@ -453,9 +471,6 @@ function App() {
 
             {/* Historical Trends */}
             <HistoricalTrends />
-
-            {/* Glossary */}
-            <Glossary />
 
             {/* Educational Content */}
             <ExpandableInfoPanel title="Learn About Ionospheric Storms">
@@ -598,6 +613,9 @@ function App() {
 
         {/* Recent Storm Performance View */}
         {activeView === 'performance' && <RecentStormPerformance />}
+
+        {/* Science Guide / Learn View */}
+        {activeView === 'learn' && <ScienceGuide />}
       </main>
 
       <style>{`
