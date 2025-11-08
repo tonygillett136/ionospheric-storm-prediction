@@ -16,6 +16,7 @@ from app.services.regional_prediction_service import RegionalPredictionService
 from app.services.alert_service import AlertService
 from app.services.recent_storm_performance_service import RecentStormPerformanceService
 from app.services.geographic_climatology_service import GeographicClimatologyService, GeographicRegion
+from app.services.regional_ensemble_service import RegionalEnsembleService
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,9 @@ data_service: DataService = None
 
 # Geographic climatology service instance
 geographic_climatology_service: GeographicClimatologyService = None
+
+# Regional ensemble service instance
+regional_ensemble_service: RegionalEnsembleService = None
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -84,6 +88,23 @@ async def init_geographic_climatology(db: AsyncSession):
     logger.info(f"Geographic climatology initialized: {bin_counts}")
 
     return geographic_climatology_service
+
+
+async def init_regional_ensemble():
+    """Initialize regional prediction service using Climatology-Primary approach"""
+    global regional_ensemble_service, geographic_climatology_service
+
+    if not geographic_climatology_service:
+        logger.warning("Cannot initialize regional ensemble: geographic climatology not ready")
+        return None
+
+    logger.info("Initializing regional prediction service (Climatology-Primary)")
+    regional_ensemble_service = RegionalEnsembleService(
+        geographic_climatology=geographic_climatology_service
+    )
+
+    logger.info("Regional prediction service initialized with validated Climatology-Primary approach")
+    return regional_ensemble_service
 
 
 @router.get("/")
@@ -286,6 +307,122 @@ async def get_ensemble_prediction(
     except Exception as e:
         logger.error(f"Ensemble prediction failed: {e}")
         raise HTTPException(status_code=500, detail=f"Ensemble prediction failed: {str(e)}")
+
+
+@router.get("/prediction/regional")
+async def get_regional_predictions(forecast_hours: int = 24):
+    """
+    Get region-specific storm predictions for all geographic regions.
+
+    This endpoint provides predictions tailored to each latitude band, accounting
+    for the strong geographic variation in ionospheric TEC. A storm that's "moderate"
+    globally might be "extreme" in auroral zones but "mild" at the equator.
+
+    Args:
+        forecast_hours: Hours ahead to forecast (default: 24)
+
+    Returns:
+        Regional predictions with risk assessments for all 5 geographic regions:
+        - Equatorial (±20°)
+        - Mid-Latitude (20-50°)
+        - Auroral (50-70°)
+        - Polar (>70°)
+        - Global (all latitudes)
+    """
+    global regional_ensemble_service
+
+    if data_service is None:
+        raise HTTPException(status_code=503, detail="Data service not initialized")
+
+    if data_service.latest_data is None:
+        raise HTTPException(status_code=404, detail="No data available for prediction")
+
+    # Initialize regional ensemble if not already done
+    if regional_ensemble_service is None:
+        await init_regional_ensemble()
+
+    if regional_ensemble_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Regional ensemble service not available"
+        )
+
+    try:
+        # Get current space weather conditions
+        current_conditions = {
+            'kp_index': data_service.latest_data.get('kp_index', 3.0),
+            'dst_index': data_service.latest_data.get('dst_index', 0.0),
+            'solar_wind_speed': data_service.latest_data.get('solar_wind_params', {}).get('speed', 400.0),
+            'imf_bz': data_service.latest_data.get('imf_bz', 0.0),
+            'f107_flux': data_service.latest_data.get('f107_flux', 100.0)
+        }
+
+        # Generate regional predictions
+        predictions = regional_ensemble_service.generate_regional_predictions(
+            current_conditions,
+            forecast_hours
+        )
+
+        return predictions
+
+    except Exception as e:
+        logger.error(f"Regional prediction failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Regional prediction failed: {str(e)}")
+
+
+@router.get("/prediction/regional/{region_code}/evolution")
+async def get_regional_evolution(
+    region_code: str,
+    hours: int = 24,
+    interval_hours: int = 1,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get time evolution forecast for a specific geographic region.
+
+    Shows how TEC and risk level will evolve over the next hours for a
+    particular latitude band.
+
+    Args:
+        region_code: Geographic region code (equatorial, mid_latitude, auroral, polar, global)
+        hours: Hours to forecast ahead (default: 24)
+        interval_hours: Time step interval (default: 1 hour)
+
+    Returns:
+        Time series of regional predictions with risk levels
+    """
+    global regional_ensemble_service
+
+    if regional_ensemble_service is None:
+        await init_regional_ensemble()
+
+    if regional_ensemble_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Regional ensemble service not available"
+        )
+
+    # Validate region code
+    region = GeographicRegion.get_region_by_code(region_code)
+    if not region:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid region code: {region_code}. Valid codes: equatorial, mid_latitude, auroral, polar, global"
+        )
+
+    try:
+        evolution = await regional_ensemble_service.generate_regional_time_evolution(
+            db,
+            region_code,
+            hours,
+            interval_hours
+        )
+
+        return evolution
+
+    except Exception as e:
+        logger.error(f"Regional evolution failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Regional evolution failed: {str(e)}")
 
 
 @router.get("/tec/current")

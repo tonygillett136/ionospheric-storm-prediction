@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import router, init_data_service, init_geographic_climatology, broadcast_updates
+from app.api.routes import router, init_data_service, init_geographic_climatology, init_regional_ensemble, broadcast_updates
 from app.db.database import init_db, AsyncSessionLocal
 
 # Configure logging
@@ -45,6 +45,10 @@ async def lifespan(app: FastAPI):
     logger.info("Collecting initial data...")
     await data_service.collect_all_data()
     await data_service.update_prediction()
+
+    # Initialize regional ensemble service (requires data service and geographic climatology)
+    logger.info("Initializing regional ensemble service...")
+    await init_regional_ensemble()
 
     # Start background tasks
     logger.info("Starting background update tasks...")

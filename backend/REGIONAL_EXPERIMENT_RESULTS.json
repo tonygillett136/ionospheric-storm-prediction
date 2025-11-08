@@ -1,0 +1,255 @@
+{
+  "period": {
+    "start": "2025-08-10T00:00:00",
+    "end": "2025-11-08T00:00:00",
+    "total_hours": 2160.0
+  },
+  "approaches": {
+    "climatology_primary": {
+      "equatorial": {
+        "region": "Equatorial",
+        "sample_count": 334,
+        "mae": 12.026,
+        "rmse": 21.556,
+        "median_error": 7.025,
+        "max_error": 109.372,
+        "predictions": [
+          24.37263364683595,
+          24.37263364683595,
+          24.37263364683595,
+          24.37263364683595,
+          25.534005008137317,
+          25.534005008137317,
+          25.534005008137317,
+          25.534005008137317,
+          36.125326188692874,
+          36.125326188692874
+        ]
+      },
+      "mid_latitude": {
+        "region": "Mid-Latitude",
+        "sample_count": 334,
+        "mae": 10.462,
+        "rmse": 22.381,
+        "median_error": 4.001,
+        "max_error": 115.488,
+        "predictions": [
+          17.768356164383558,
+          17.768356164383558,
+          17.768356164383558,
+          17.768356164383558,
+          18.66171875,
+          18.66171875,
+          18.66171875,
+          18.66171875,
+          26.80888888888889,
+          26.80888888888889
+        ]
+      },
+      "auroral": {
+        "region": "Auroral",
+        "sample_count": 334,
+        "mae": 11.101,
+        "rmse": 22.488,
+        "median_error": 4.288,
+        "max_error": 115.697,
+        "predictions": [
+          18.373025131182757,
+          18.373025131182757,
+          18.373025131182757,
+          18.373025131182757,
+          19.713069009607416,
+          19.713069009607416,
+          19.713069009607416,
+          19.713069009607416,
+          31.933824217940753,
+          31.933824217940753
+        ]
+      },
+      "polar": {
+        "region": "Polar",
+        "sample_count": 334,
+        "mae": 11.672,
+        "rmse": 22.789,
+        "median_error": 5.067,
+        "max_error": 116.38,
+        "predictions": [
+          17.98276244596222,
+          17.98276244596222,
+          17.98276244596222,
+          17.98276244596222,
+          19.64903794063043,
+          19.64903794063043,
+          19.64903794063043,
+          19.64903794063043,
+          34.24637688221879,
+          34.24637688221879
+        ]
+      },
+      "global": {
+        "region": "Global",
+        "sample_count": 334,
+        "mae": 10.462,
+        "rmse": 22.381,
+        "median_error": 4.001,
+        "max_error": 115.488,
+        "predictions": [
+          17.768356164383558,
+          17.768356164383558,
+          17.768356164383558,
+          17.768356164383558,
+          18.66171875,
+          18.66171875,
+          18.66171875,
+          18.66171875,
+          26.80888888888889,
+          26.80888888888889
+        ]
+      }
+    },
+    "v21_enhanced": {
+      "equatorial": {
+        "region": "Equatorial",
+        "sample_count": 334,
+        "mae": 10.931,
+        "rmse": 22.103,
+        "median_error": 4.551,
+        "max_error": 113.164,
+        "predictions": [
+          19.279102319665775,
+          19.233939241357668,
+          19.046001504846437,
+          19.09064610857569,
+          19.612669457020793,
+          19.66131829124931,
+          19.477734402241744,
+          19.590609367909465,
+          23.910607040265965,
+          23.927806709150246
+        ]
+      },
+      "mid_latitude": {
+        "region": "Mid-Latitude",
+        "sample_count": 334,
+        "mae": 10.698,
+        "rmse": 23.561,
+        "median_error": 4.253,
+        "max_error": 118.405,
+        "predictions": [
+          13.850149281854497,
+          13.815408452386723,
+          13.6708409627627,
+          13.705182965631353,
+          14.106739387512206,
+          14.144161567687988,
+          14.00294319152832,
+          14.0897700881958,
+          17.412845220777726,
+          17.426075735304092
+        ]
+      },
+      "auroral": {
+        "region": "Auroral",
+        "sample_count": 334,
+        "mae": 11.564,
+        "rmse": 24.126,
+        "median_error": 4.464,
+        "max_error": 120.074,
+        "predictions": [
+          12.494820276624715,
+          12.442709032423055,
+          12.22585779798702,
+          12.277370802289997,
+          12.879705435111278,
+          12.93583870537495,
+          12.724011141135449,
+          12.854251486136668,
+          17.838864185009555,
+          17.858709956799103
+        ]
+      },
+      "polar": {
+        "region": "Polar",
+        "sample_count": 334,
+        "mae": 12.578,
+        "rmse": 24.839,
+        "median_error": 5.929,
+        "max_error": 121.756,
+        "predictions": [
+          10.92175724736682,
+          10.859223754324828,
+          10.599002273001586,
+          10.66081787816516,
+          11.406908573774142,
+          11.474268498090549,
+          11.220075421003148,
+          11.376363835004613,
+          17.33087215028742,
+          17.354687076434878
+        ]
+      },
+      "global": {
+        "region": "Global",
+        "sample_count": 334,
+        "mae": 10.698,
+        "rmse": 23.561,
+        "median_error": 4.253,
+        "max_error": 118.405,
+        "predictions": [
+          13.850149281854497,
+          13.815408452386723,
+          13.6708409627627,
+          13.705182965631353,
+          14.106739387512206,
+          14.144161567687988,
+          14.00294319152832,
+          14.0897700881958,
+          17.412845220777726,
+          17.426075735304092
+        ]
+      }
+    }
+  },
+  "comparison": {
+    "equatorial": {
+      "region": "Equatorial",
+      "mae_improvement": 1.095,
+      "rmse_improvement": -0.547,
+      "winner": "V2.1-Enhanced",
+      "confidence": "Moderate"
+    },
+    "mid_latitude": {
+      "region": "Mid-Latitude",
+      "mae_improvement": -0.236,
+      "rmse_improvement": -1.18,
+      "winner": "Climatology-Primary",
+      "confidence": "High"
+    },
+    "auroral": {
+      "region": "Auroral",
+      "mae_improvement": -0.463,
+      "rmse_improvement": -1.638,
+      "winner": "Climatology-Primary",
+      "confidence": "High"
+    },
+    "polar": {
+      "region": "Polar",
+      "mae_improvement": -0.906,
+      "rmse_improvement": -2.05,
+      "winner": "Climatology-Primary",
+      "confidence": "High"
+    },
+    "global": {
+      "region": "Global",
+      "mae_improvement": -0.236,
+      "rmse_improvement": -1.18,
+      "winner": "Climatology-Primary",
+      "confidence": "High"
+    }
+  },
+  "overall_winner": {
+    "approach": "Climatology-Primary",
+    "total_improvement": -7.341,
+    "recommendation": "Climatology-Primary approach wins in 4/5 regions. Recommended for production."
+  }
+}
