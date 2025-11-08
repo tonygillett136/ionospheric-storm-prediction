@@ -167,6 +167,27 @@ class APIService {
     }
   }
 
+  // Regional Prediction API
+  async getRegionalPredictions() {
+    try {
+      const response = await this.axiosInstance.get('/prediction/regional');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching regional predictions:', error);
+      throw error;
+    }
+  }
+
+  async getRegionalEvolution(regionCode, params = {}) {
+    try {
+      const response = await this.axiosInstance.get(`/prediction/regional/${regionCode}/evolution`, { params });
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching evolution for region ${regionCode}:`, error);
+      throw error;
+    }
+  }
+
   async getStormGallery() {
     try {
       const response = await this.axiosInstance.get('/storms/gallery');

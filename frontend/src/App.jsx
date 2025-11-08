@@ -15,6 +15,7 @@ import Globe3D from './components/Globe3D';
 import BacktestWorkshop from './components/BacktestWorkshop';
 import ImpactDashboard from './components/ImpactDashboard';
 import RegionalPrediction from './components/RegionalPrediction';
+import RegionalPredictions from './components/RegionalPredictions';
 import EnsembleComparison from './components/EnsembleComparison';
 import ClimatologyExplorer from './components/ClimatologyExplorer';
 import StormGallery from './components/StormGallery';
@@ -584,7 +585,7 @@ function App() {
         {activeView === 'impact' && <ImpactDashboard />}
 
         {/* Regional Prediction View */}
-        {activeView === 'regional' && <RegionalPrediction />}
+        {activeView === 'regional' && <RegionalPredictions />}
 
         {/* Ensemble Model View */}
         {activeView === 'ensemble' && <EnsembleComparison />}
