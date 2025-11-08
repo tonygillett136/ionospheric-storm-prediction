@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
+import Glossary from './Glossary';
 import './ScienceGuide.css';
 
 const ScienceGuide = () => {
@@ -303,31 +304,61 @@ const ScienceGuide = () => {
         {/* Interactive element if available */}
         {interactiveElements[chapterId]}
 
-        {/* Markdown content would go here */}
+        {/* Markdown content */}
         <div className="markdown-content">
           <p className="lead-paragraph">
             {chapters[chapterId].summary}
           </p>
 
-          {/* Placeholder for actual markdown content */}
-          <div className="content-placeholder">
-            <p>📝 <em>Full chapter content from SCIENCE_GUIDE.md would be rendered here using ReactMarkdown</em></p>
+          {/* Chapter 14: Show full Glossary component */}
+          {chapterId === 14 ? (
+            <Glossary />
+          ) : (
+            <>
+              {/* Placeholder for actual markdown content from SCIENCE_GUIDE.md */}
+              <div className="content-placeholder">
+                <div style={{
+                  padding: '24px',
+                  background: 'rgba(74, 144, 226, 0.1)',
+                  borderLeft: '4px solid #4a90e2',
+                  borderRadius: '8px',
+                  marginBottom: '24px'
+                }}>
+                  <h3 style={{ marginTop: 0, color: '#4a90e2' }}>📝 Content Integration Note</h3>
+                  <p style={{ margin: '12px 0' }}>
+                    Full chapter content from <code>docs/SCIENCE_GUIDE.md</code> would be rendered here using ReactMarkdown.
+                  </p>
+                  <p style={{ margin: '12px 0' }}>
+                    To integrate the full 27,000-word guide:
+                  </p>
+                  <ol style={{ marginLeft: '20px' }}>
+                    <li>Parse <code>SCIENCE_GUIDE.md</code> into chapter sections (using heading markers)</li>
+                    <li>Load chapter content based on <code>chapterId</code></li>
+                    <li>Render with ReactMarkdown in place of this placeholder</li>
+                  </ol>
+                  <p style={{ margin: '12px 0' }}>
+                    See <code>docs/EDUCATIONAL_CONTENT_INDEX.md</code> for complete integration guide.
+                  </p>
+                </div>
 
-            {chapterId === 1 && (
-              <div className="example-content">
-                <h3>The GPS Connection</h3>
-                <p>Here's the critical part: when GPS signals travel through the ionosphere, they slow down.
-                The more electrons they encounter, the slower they go. This delay causes <strong>positioning errors</strong>.</p>
+                {/* Example content for some chapters */}
+                {chapterId === 1 && (
+                  <div className="example-content">
+                    <h3>The GPS Connection</h3>
+                    <p>Here's the critical part: when GPS signals travel through the ionosphere, they slow down.
+                    The more electrons they encounter, the slower they go. This delay causes <strong>positioning errors</strong>.</p>
 
-                <GPSErrorCalculator />
+                    <GPSErrorCalculator />
 
-                <p className="info-box">
-                  <strong>💡 Try it:</strong> Move the slider to see how TEC affects GPS accuracy.
-                  During the May 2024 G5 storm, TEC exceeded 45 TECU in auroral regions - that's over 7 meters of error!
-                </p>
+                    <p className="info-box">
+                      <strong>💡 Try it:</strong> Move the slider to see how TEC affects GPS accuracy.
+                      During the May 2024 G5 storm, TEC exceeded 45 TECU in auroral regions - that's over 7 meters of error!
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Navigation */}
