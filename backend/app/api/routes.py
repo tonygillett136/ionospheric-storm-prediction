@@ -17,6 +17,7 @@ from app.services.alert_service import AlertService
 from app.services.recent_storm_performance_service import RecentStormPerformanceService
 from app.services.geographic_climatology_service import GeographicClimatologyService, GeographicRegion
 from app.services.regional_ensemble_service import RegionalEnsembleService
+from app.routes.science_guide import router as science_guide_router
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,7 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+router.include_router(science_guide_router)
 
 # Global data service instance
 data_service: DataService = None

@@ -238,6 +238,27 @@ class APIService {
     }
   }
 
+  // Science Guide API
+  async getScienceGuideChapters() {
+    try {
+      const response = await this.axiosInstance.get('/science-guide/chapters');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching science guide chapters:', error);
+      throw error;
+    }
+  }
+
+  async getScienceGuideChapter(chapterId) {
+    try {
+      const response = await this.axiosInstance.get(`/science-guide/chapters/${chapterId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching science guide chapter ${chapterId}:`, error);
+      throw error;
+    }
+  }
+
   // Generic HTTP methods for custom endpoints
   async get(endpoint) {
     try {

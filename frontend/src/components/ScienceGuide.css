@@ -1,6 +1,6 @@
 .science-guide {
   display: grid;
-  grid-template-columns: 300px 1fr 320px;
+  grid-template-columns: 360px 1fr 300px;
   gap: 0;
   height: calc(100vh - 80px);
   background: #0f172a;
@@ -741,4 +741,10 @@
 
 .example-content {
   margin: 2rem 0;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

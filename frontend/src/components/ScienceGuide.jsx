@@ -10,6 +10,9 @@ const ScienceGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentData, setCurrentData] = useState(null);
   const [readChapters, setReadChapters] = useState(new Set());
+  const [chapterContent, setChapterContent] = useState('');
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [contentError, setContentError] = useState(null);
 
   // Fetch current data for interactive elements
   useEffect(() => {
@@ -26,6 +29,32 @@ const ScienceGuide = () => {
     const interval = setInterval(fetchData, 5 * 60 * 1000); // Update every 5 min
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch chapter content when activeChapter changes
+  useEffect(() => {
+    const fetchChapterContent = async () => {
+      // Don't fetch for glossary chapter (id 14) as it has its own component
+      if (activeChapter === 14) {
+        setChapterContent('');
+        return;
+      }
+
+      setLoadingContent(true);
+      setContentError(null);
+
+      try {
+        const response = await api.getScienceGuideChapter(activeChapter);
+        setChapterContent(response.content || '');
+      } catch (error) {
+        console.error(`Error fetching chapter ${activeChapter} content:`, error);
+        setContentError('Failed to load chapter content. Please try again.');
+      } finally {
+        setLoadingContent(false);
+      }
+    };
+
+    fetchChapterContent();
+  }, [activeChapter]);
 
   // Mark chapter as read when scrolled to bottom
   useEffect(() => {
@@ -306,57 +335,69 @@ const ScienceGuide = () => {
 
         {/* Markdown content */}
         <div className="markdown-content">
-          <p className="lead-paragraph">
-            {chapters[chapterId].summary}
-          </p>
-
           {/* Chapter 14: Show full Glossary component */}
           {chapterId === 14 ? (
             <GlossaryRedesigned />
           ) : (
             <>
-              {/* Placeholder for actual markdown content from SCIENCE_GUIDE.md */}
-              <div className="content-placeholder">
-                <div style={{
+              {/* Loading state */}
+              {loadingContent && (
+                <div className="loading-content" style={{
+                  padding: '48px',
+                  textAlign: 'center',
+                  color: '#94a3b8'
+                }}>
+                  <div className="spinner" style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid rgba(74, 144, 226, 0.2)',
+                    borderTop: '4px solid #4a90e2',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 16px'
+                  }}></div>
+                  <p>Loading chapter content...</p>
+                </div>
+              )}
+
+              {/* Error state */}
+              {contentError && (
+                <div className="content-error" style={{
                   padding: '24px',
-                  background: 'rgba(74, 144, 226, 0.1)',
-                  borderLeft: '4px solid #4a90e2',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  borderLeft: '4px solid #ef4444',
                   borderRadius: '8px',
                   marginBottom: '24px'
                 }}>
-                  <h3 style={{ marginTop: 0, color: '#4a90e2' }}>📝 Content Integration Note</h3>
-                  <p style={{ margin: '12px 0' }}>
-                    Full chapter content from <code>docs/SCIENCE_GUIDE.md</code> would be rendered here using ReactMarkdown.
-                  </p>
-                  <p style={{ margin: '12px 0' }}>
-                    To integrate the full 27,000-word guide:
-                  </p>
-                  <ol style={{ marginLeft: '20px' }}>
-                    <li>Parse <code>SCIENCE_GUIDE.md</code> into chapter sections (using heading markers)</li>
-                    <li>Load chapter content based on <code>chapterId</code></li>
-                    <li>Render with ReactMarkdown in place of this placeholder</li>
-                  </ol>
-                  <p style={{ margin: '12px 0' }}>
-                    See <code>docs/EDUCATIONAL_CONTENT_INDEX.md</code> for complete integration guide.
-                  </p>
+                  <h3 style={{ marginTop: 0, color: '#ef4444' }}>⚠️ Error</h3>
+                  <p>{contentError}</p>
                 </div>
+              )}
 
-                {/* Example content for some chapters */}
-                {chapterId === 1 && (
-                  <div className="example-content">
-                    <h3>The GPS Connection</h3>
-                    <p>Here's the critical part: when GPS signals travel through the ionosphere, they slow down.
-                    The more electrons they encounter, the slower they go. This delay causes <strong>positioning errors</strong>.</p>
+              {/* Actual markdown content */}
+              {!loadingContent && !contentError && chapterContent && (
+                <ReactMarkdown>{chapterContent}</ReactMarkdown>
+              )}
 
-                    <GPSErrorCalculator />
-
-                    <p className="info-box">
-                      <strong>💡 Try it:</strong> Move the slider to see how TEC affects GPS accuracy.
-                      During the May 2024 G5 storm, TEC exceeded 45 TECU in auroral regions - that's over 7 meters of error!
+              {/* Empty state (no content but no error) */}
+              {!loadingContent && !contentError && !chapterContent && (
+                <div className="content-placeholder">
+                  <p className="lead-paragraph">
+                    {chapters[chapterId].summary}
+                  </p>
+                  <div style={{
+                    padding: '24px',
+                    background: 'rgba(74, 144, 226, 0.1)',
+                    borderLeft: '4px solid #4a90e2',
+                    borderRadius: '8px',
+                    marginTop: '24px'
+                  }}>
+                    <p style={{ margin: '12px 0' }}>
+                      Chapter content is being prepared...
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
