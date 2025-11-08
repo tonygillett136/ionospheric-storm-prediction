@@ -15,6 +15,7 @@ from app.services.impact_assessment_service import ImpactAssessmentService
 from app.services.regional_prediction_service import RegionalPredictionService
 from app.services.alert_service import AlertService
 from app.services.recent_storm_performance_service import RecentStormPerformanceService
+from app.services.geographic_climatology_service import GeographicClimatologyService, GeographicRegion
 from app.db.database import get_db
 from app.db.repository import HistoricalDataRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,9 @@ router = APIRouter()
 
 # Global data service instance
 data_service: DataService = None
+
+# Geographic climatology service instance
+geographic_climatology_service: GeographicClimatologyService = None
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -65,6 +69,21 @@ def init_data_service():
     global data_service
     data_service = DataService()
     return data_service
+
+
+async def init_geographic_climatology(db: AsyncSession):
+    """Initialize and build geographic climatology service"""
+    global geographic_climatology_service
+
+    logger.info("Initializing geographic climatology service")
+    geographic_climatology_service = GeographicClimatologyService()
+
+    # Build climatology tables for all regions
+    bin_counts = await geographic_climatology_service.build_climatology(db)
+
+    logger.info(f"Geographic climatology initialized: {bin_counts}")
+
+    return geographic_climatology_service
 
 
 @router.get("/")
@@ -1137,6 +1156,181 @@ async def get_climatology_heatmap(db: AsyncSession = Depends(get_db)):
             status_code=500,
             detail=f"Climatology heatmap generation failed: {str(e)}"
         )
+
+
+# Geographic Climatology endpoints
+@router.get("/climatology/regions")
+async def get_available_regions():
+    """
+    Get list of available geographic regions for climatology analysis.
+
+    Returns region definitions including latitude ranges and descriptions.
+    """
+    regions = GeographicRegion.get_all_regions()
+
+    return {
+        "regions": [
+            {
+                "code": r['code'],
+                "name": r['name'],
+                "lat_range": r['lat_range'],
+                "description": r['description']
+            }
+            for r in regions
+        ],
+        "total_regions": len(regions)
+    }
+
+
+@router.get("/climatology/geographic/explore")
+async def explore_geographic_climatology(
+    region: str = "global",  # equatorial, mid_latitude, auroral, polar, global
+    days: int = 365,
+    kp_scenario: str = "moderate",
+    kp_value: float = 3.0,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Explore climatology data for a specific geographic region.
+
+    This endpoint provides region-specific TEC forecasts accounting for
+    latitude-dependent ionospheric behavior.
+
+    Parameters:
+    - region: Geographic region code (equatorial, mid_latitude, auroral, polar, global)
+    - days: Number of days to forecast (1-730)
+    - kp_scenario: Kp scenario (quiet, moderate, storm, current, specific)
+    - kp_value: Specific Kp value if scenario is 'specific'
+    """
+    global geographic_climatology_service
+
+    if geographic_climatology_service is None:
+        # Initialize if not already done
+        geographic_climatology_service = GeographicClimatologyService()
+        await geographic_climatology_service.build_climatology(db)
+
+    # Validate region
+    region_def = GeographicRegion.get_region_by_code(region)
+    if not region_def:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid region code: {region}. Use /climatology/regions to see available regions."
+        )
+
+    # Validate days
+    if not (1 <= days <= 730):
+        raise HTTPException(status_code=400, detail="Days must be between 1 and 730")
+
+    # Determine Kp value
+    kp_scenarios = {
+        "quiet": 2.0,
+        "moderate": 3.0,
+        "storm": 6.0,
+        "current": data_service.latest_data.get('kp_index', 3.0) if data_service and data_service.latest_data else 3.0
+    }
+
+    if kp_scenario == "specific":
+        kp = max(0, min(9, kp_value))
+    else:
+        kp = kp_scenarios.get(kp_scenario, 3.0)
+
+    # Get forecast
+    start_date = datetime.utcnow()
+    forecast = geographic_climatology_service.get_multi_region_forecast(
+        start_date,
+        kp,
+        days
+    )
+
+    # Extract data for requested region
+    region_forecast = forecast.get(region, [])
+
+    return {
+        "region": {
+            "code": region,
+            "name": region_def['name'],
+            "lat_range": region_def['lat_range'],
+            "description": region_def['description']
+        },
+        "parameters": {
+            "start_date": start_date.date().isoformat(),
+            "days": len(region_forecast),
+            "kp_scenario": kp_scenario,
+            "kp_value": round(kp, 1)
+        },
+        "forecast": region_forecast,
+        "statistics": {
+            "mean_tec": round(np.mean([p['tec'] for p in region_forecast]), 2) if region_forecast else 0,
+            "max_tec": round(max([p['tec'] for p in region_forecast]), 2) if region_forecast else 0,
+            "min_tec": round(min([p['tec'] for p in region_forecast]), 2) if region_forecast else 0
+        }
+    }
+
+
+@router.get("/climatology/geographic/compare")
+async def compare_regions(
+    target_date: str = None,
+    kp_scenario: str = "moderate",
+    kp_value: float = 3.0,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Compare TEC values across all geographic regions for a specific date.
+
+    This endpoint allows users to see how TEC varies across different
+    latitude bands under the same geomagnetic conditions.
+
+    Parameters:
+    - target_date: Date to compare (YYYY-MM-DD, default: today)
+    - kp_scenario: Kp scenario (quiet, moderate, storm, specific)
+    - kp_value: Specific Kp value if scenario is 'specific'
+    """
+    global geographic_climatology_service
+
+    if geographic_climatology_service is None:
+        geographic_climatology_service = GeographicClimatologyService()
+        await geographic_climatology_service.build_climatology(db)
+
+    # Parse target date
+    if target_date:
+        try:
+            date_obj = datetime.fromisoformat(target_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Use YYYY-MM-DD"
+            )
+    else:
+        date_obj = datetime.utcnow()
+
+    # Determine Kp value
+    kp_scenarios = {
+        "quiet": 2.0,
+        "moderate": 3.0,
+        "storm": 6.0,
+        "current": data_service.latest_data.get('kp_index', 3.0) if data_service and data_service.latest_data else 3.0
+    }
+
+    if kp_scenario == "specific":
+        kp = max(0, min(9, kp_value))
+    else:
+        kp = kp_scenarios.get(kp_scenario, 3.0)
+
+    # Get comparison
+    comparisons = geographic_climatology_service.compare_regions(date_obj, kp)
+
+    return {
+        "date": date_obj.date().isoformat(),
+        "day_of_year": date_obj.timetuple().tm_yday,
+        "kp_scenario": kp_scenario,
+        "kp_value": round(kp, 1),
+        "regions": comparisons,
+        "insights": {
+            "highest_tec_region": comparisons[0]['region'] if comparisons else None,
+            "lowest_tec_region": comparisons[-1]['region'] if comparisons else None,
+            "tec_range": round(comparisons[0]['tec'] - comparisons[-1]['tec'], 2) if len(comparisons) >= 2 else 0
+        }
+    }
 
 
 # Historical Storm Gallery endpoints

@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import router, init_data_service, broadcast_updates
-from app.db.database import init_db
+from app.api.routes import router, init_data_service, init_geographic_climatology, broadcast_updates
+from app.db.database import init_db, AsyncSessionLocal
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +31,11 @@ async def lifespan(app: FastAPI):
     # Initialize database
     logger.info("Initializing database...")
     await init_db()
+
+    # Initialize geographic climatology
+    logger.info("Initializing geographic climatology...")
+    async with AsyncSessionLocal() as session:
+        await init_geographic_climatology(session)
 
     # Initialize data service
     data_service = init_data_service()

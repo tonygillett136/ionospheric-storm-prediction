@@ -137,6 +137,36 @@ class APIService {
     }
   }
 
+  async getGeographicRegions() {
+    try {
+      const response = await this.axiosInstance.get('/climatology/regions');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching geographic regions:', error);
+      throw error;
+    }
+  }
+
+  async exploreGeographicClimatology(params = {}) {
+    try {
+      const response = await this.axiosInstance.get('/climatology/geographic/explore', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching geographic climatology data:', error);
+      throw error;
+    }
+  }
+
+  async compareRegions(params = {}) {
+    try {
+      const response = await this.axiosInstance.get('/climatology/geographic/compare', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error comparing regions:', error);
+      throw error;
+    }
+  }
+
   async getStormGallery() {
     try {
       const response = await this.axiosInstance.get('/storms/gallery');

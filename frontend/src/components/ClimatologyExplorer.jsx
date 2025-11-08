@@ -19,20 +19,33 @@ const ClimatologyExplorer = () => {
   const [heatmapData, setHeatmapData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeView, setActiveView] = useState('timeseries'); // 'timeseries', 'heatmap', 'seasonal'
+  const [activeView, setActiveView] = useState('timeseries'); // 'timeseries', 'heatmap', 'seasonal', 'geographic'
 
   // User controls
   const [days, setDays] = useState(365);
   const [kpScenario, setKpScenario] = useState('moderate');
   const [selectedKpLevels, setSelectedKpLevels] = useState([2, 5, 7]); // For multi-line comparison
 
+  // Geographic climatology state
+  const [availableRegions, setAvailableRegions] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState('global');
+  const [geographicData, setGeographicData] = useState(null);
+  const [regionComparison, setRegionComparison] = useState(null)
+
   useEffect(() => {
     if (activeView === 'timeseries') {
       loadClimatologyData();
     } else if (activeView === 'heatmap' || activeView === 'seasonal') {
       loadHeatmapData();
+    } else if (activeView === 'geographic') {
+      loadGeographicData();
     }
-  }, [days, kpScenario, activeView]);
+  }, [days, kpScenario, activeView, selectedRegion]);
+
+  // Load available regions on component mount
+  useEffect(() => {
+    loadAvailableRegions();
+  }, []);
 
   const loadClimatologyData = async () => {
     setLoading(true);
@@ -61,6 +74,39 @@ const ClimatologyExplorer = () => {
     } catch (err) {
       setError(err.message || 'Failed to load heatmap data');
       console.error('Error loading heatmap:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAvailableRegions = async () => {
+    try {
+      const data = await api.getGeographicRegions();
+      setAvailableRegions(data.regions || []);
+    } catch (err) {
+      console.error('Error loading regions:', err);
+    }
+  };
+
+  const loadGeographicData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [regionData, comparison] = await Promise.all([
+        api.exploreGeographicClimatology({
+          region: selectedRegion,
+          days,
+          kp_scenario: kpScenario
+        }),
+        api.compareRegions({
+          kp_scenario: kpScenario
+        })
+      ]);
+      setGeographicData(regionData);
+      setRegionComparison(comparison);
+    } catch (err) {
+      setError(err.message || 'Failed to load geographic data');
+      console.error('Error loading geographic data:', err);
     } finally {
       setLoading(false);
     }
@@ -193,6 +239,12 @@ const ClimatologyExplorer = () => {
         >
           Seasonal Patterns
         </button>
+        <button
+          className={`tab ${activeView === 'geographic' ? 'active' : ''}`}
+          onClick={() => setActiveView('geographic')}
+        >
+          Geographic Analysis
+        </button>
       </div>
 
       {/* Controls */}
@@ -253,6 +305,52 @@ const ClimatologyExplorer = () => {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeView === 'geographic' && (
+        <div className="controls">
+          <div className="control-group">
+            <label htmlFor="geographic-region">Geographic Region:</label>
+            <select
+              id="geographic-region"
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+            >
+              {availableRegions.map(region => (
+                <option key={region.code} value={region.code}>
+                  {region.name} ({region.lat_range[0]}° to {region.lat_range[1]}°)
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="control-group">
+            <label htmlFor="geographic-days">Time Range:</label>
+            <select
+              id="geographic-days"
+              value={days}
+              onChange={(e) => setDays(parseInt(e.target.value))}
+            >
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days (3 months)</option>
+              <option value="180">180 days (6 months)</option>
+              <option value="365">365 days (1 year)</option>
+            </select>
+          </div>
+          <div className="control-group">
+            <label htmlFor="geographic-kp">Kp Scenario:</label>
+            <select
+              id="geographic-kp"
+              value={kpScenario}
+              onChange={(e) => setKpScenario(e.target.value)}
+            >
+              <option value="quiet">Quiet (Kp ≈ 2)</option>
+              <option value="moderate">Moderate (Kp ≈ 3)</option>
+              <option value="storm">Storm (Kp ≈ 6)</option>
+            </select>
+          </div>
+          <button onClick={loadGeographicData}>Refresh</button>
         </div>
       )}
 
@@ -520,6 +618,70 @@ const ClimatologyExplorer = () => {
                   during storm conditions, while minimum values remain relatively consistent across seasons.
                   This reflects the "equinoctial effect" where ionospheric activity peaks during equinoxes.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {activeView === 'geographic' && geographicData && regionComparison && (
+            <div className="chart-section">
+              <h3>Geographic Analysis: {geographicData.region.name}</h3>
+              <p className="chart-description">
+                {geographicData.region.description}
+                <br />
+                Latitude range: {geographicData.region.lat_range[0]}° to {geographicData.region.lat_range[1]}°
+              </p>
+
+              {/* Regional Forecast Time Series */}
+              <div style={{ marginBottom: '3rem' }}>
+                <h4>Regional TEC Forecast</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={geographicData.forecast}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis label={{ value: 'TEC (TECU)', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="tec" stroke="#3b82f6" strokeWidth={2} name="TEC" />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="info-box" style={{ marginTop: '1rem' }}>
+                  <strong>Statistics:</strong> Mean: {geographicData.statistics.mean_tec} TECU |
+                  Range: {geographicData.statistics.min_tec} - {geographicData.statistics.max_tec} TECU
+                </div>
+              </div>
+
+              {/* Region Comparison */}
+              <div>
+                <h4>Regional Comparison</h4>
+                <p className="chart-description">
+                  TEC varies significantly by latitude. This chart compares all geographic regions for {regionComparison.date}.
+                </p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={regionComparison.regions}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="region" />
+                    <YAxis label={{ value: 'TEC (TECU)', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="custom-tooltip">
+                            <p className="tooltip-date"><strong>{data.region}</strong></p>
+                            <p className="tooltip-value">TEC: {data.tec} TECU</p>
+                            <p className="tooltip-doy">{data.description}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }} />
+                    <Line type="monotone" dataKey="tec" stroke="#10b981" strokeWidth={3} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="info-box" style={{ marginTop: '1rem' }}>
+                  <strong>Key Insight:</strong> TEC is highest in {regionComparison.insights.highest_tec_region} regions
+                  and lowest in {regionComparison.insights.lowest_tec_region} regions.
+                  The difference can be up to {regionComparison.insights.tec_range} TECU.
+                </div>
               </div>
             </div>
           )}
