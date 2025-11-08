@@ -270,6 +270,111 @@
   font-size: 0.85rem;
 }
 
+/* Timeline Section */
+.timeline-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.timeline-header {
+  margin-bottom: 1.5rem;
+}
+
+.timeline-header h3 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.timeline-subtitle {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.timeline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: #94a3b8;
+}
+
+.spinner-small {
+  border: 3px solid #334155;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+/* Risk Timeline */
+.risk-timeline {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #334155;
+}
+
+.risk-timeline h4 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  margin: 0 0 1rem 0;
+}
+
+.risk-timeline-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100px;
+  background: rgba(51, 65, 85, 0.2);
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.risk-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+.risk-bar {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.risk-bar:hover {
+  opacity: 0.8;
+  transform: scaleY(1.05);
+}
+
+.risk-bar-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  position: absolute;
+  bottom: -18px;
+}
+
+.risk-legend {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 1.5rem;
+}
+
 /* Comparison Chart Section */
 .comparison-section {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);

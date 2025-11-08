@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Area, AreaChart } from 'recharts';
 import api from '../services/api';
 import './RegionalPredictions.css';
 
@@ -8,6 +8,8 @@ const RegionalPredictions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState('global');
+  const [timelineData, setTimelineData] = useState({});
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
 
   useEffect(() => {
     fetchRegionalPredictions();
@@ -16,17 +18,46 @@ const RegionalPredictions = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (selectedRegion && regionalData) {
+      fetchTimelineForRegion(selectedRegion);
+    }
+  }, [selectedRegion]);
+
   const fetchRegionalPredictions = async () => {
     try {
       setLoading(true);
       const data = await api.getRegionalPredictions();
       setRegionalData(data);
       setError(null);
+      // Fetch timeline for default region
+      if (data && data.regional_predictions) {
+        fetchTimelineForRegion('global');
+      }
     } catch (err) {
       console.error('Error fetching regional predictions:', err);
       setError('Failed to load regional predictions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTimelineForRegion = async (regionCode) => {
+    if (timelineData[regionCode]) {
+      return; // Already loaded
+    }
+
+    try {
+      setLoadingTimeline(true);
+      const data = await api.getRegionalEvolution(regionCode, { hours: 24, interval_hours: 1 });
+      setTimelineData(prev => ({
+        ...prev,
+        [regionCode]: data
+      }));
+    } catch (err) {
+      console.error(`Error fetching timeline for ${regionCode}:`, err);
+    } finally {
+      setLoadingTimeline(false);
     }
   };
 
@@ -202,6 +233,108 @@ const RegionalPredictions = () => {
           </div>
         ))}
       </div>
+
+      {/* 24-Hour Timeline Forecast */}
+      {selectedRegion && timelineData[selectedRegion] && (
+        <div className="timeline-section">
+          <div className="timeline-header">
+            <h3>📈 24-Hour TEC Forecast - {regional_predictions[selectedRegion]?.region}</h3>
+            <p className="timeline-subtitle">
+              Predicted TEC evolution over the next 24 hours based on climatological patterns
+            </p>
+          </div>
+
+          {loadingTimeline ? (
+            <div className="timeline-loading">
+              <div className="spinner-small"></div>
+              <span>Loading timeline...</span>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={timelineData[selectedRegion].time_series}>
+                <defs>
+                  <linearGradient id="tecGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={regional_predictions[selectedRegion]?.risk.color} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={regional_predictions[selectedRegion]?.risk.color} stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis
+                  dataKey="hour_offset"
+                  stroke="#888"
+                  label={{ value: 'Hours Ahead', position: 'insideBottom', offset: -5, fill: '#888' }}
+                  tickFormatter={(value) => `+${value}h`}
+                />
+                <YAxis
+                  stroke="#888"
+                  label={{ value: 'TEC (TECU)', angle: -90, position: 'insideLeft', fill: '#888' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value, name) => {
+                    if (name === 'tec') return [value.toFixed(2) + ' TECU', 'TEC'];
+                    if (name === 'risk_level') return [value, 'Risk'];
+                    return [value, name];
+                  }}
+                  labelFormatter={(hour) => `+${hour} hours`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="tec"
+                  stroke={regional_predictions[selectedRegion]?.risk.color}
+                  strokeWidth={3}
+                  fill="url(#tecGradient)"
+                  name="TEC"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+
+          {/* Risk Level Timeline */}
+          {timelineData[selectedRegion] && (
+            <div className="risk-timeline">
+              <h4>Risk Level Evolution</h4>
+              <div className="risk-timeline-bars">
+                {timelineData[selectedRegion].time_series.slice(0, 24).map((point, index) => {
+                  const riskColors = {
+                    'LOW': '#10b981',
+                    'MODERATE': '#fbbf24',
+                    'HIGH': '#f97316',
+                    'SEVERE': '#ef4444',
+                    'EXTREME': '#991b1b'
+                  };
+                  return (
+                    <div key={index} className="risk-bar-container">
+                      <div
+                        className="risk-bar"
+                        style={{
+                          backgroundColor: riskColors[point.risk_level] || '#6b7280',
+                          height: `${(point.risk_severity / 5) * 100}%`
+                        }}
+                        title={`${point.hour_offset}h: ${point.risk_level} (${point.tec} TECU)`}
+                      />
+                      {index % 3 === 0 && (
+                        <span className="risk-bar-label">+{point.hour_offset}h</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="risk-legend">
+                <span>Low</span>
+                <span>Moderate</span>
+                <span>High</span>
+                <span>Severe</span>
+                <span>Extreme</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Comparison Chart */}
       <div className="comparison-section">
