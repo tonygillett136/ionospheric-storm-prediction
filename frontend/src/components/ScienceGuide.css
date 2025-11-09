@@ -1,6 +1,6 @@
 .science-guide {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 480px 1fr;
   gap: 0;
   height: calc(100vh - 80px);
   background: #0f172a;
