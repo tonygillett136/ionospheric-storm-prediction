@@ -65,43 +65,83 @@ class RegionalRiskLevel:
     }
 
     @classmethod
-    def assess_risk(cls, region_code: str, tec: float) -> Dict:
+    def assess_risk(cls, region_code: str, tec: float, kp: float = None) -> Dict:
         """
-        Assess risk level for a region based on TEC value.
+        Assess risk level for a region based on TEC value and geomagnetic conditions.
+
+        During active storms (Kp >= 5), risk is elevated even if TEC hasn't spiked yet,
+        as storm effects include aurora, GPS errors, and radio disruption.
 
         Returns risk level, color, and description.
         """
         thresholds = cls.THRESHOLDS.get(region_code, cls.THRESHOLDS['global'])
 
+        # Base risk assessment from TEC
         if tec < thresholds['low']:
+            tec_severity = 1
+        elif tec < thresholds['moderate']:
+            tec_severity = 2
+        elif tec < thresholds['high']:
+            tec_severity = 3
+        elif tec < thresholds['extreme']:
+            tec_severity = 4
+        else:
+            tec_severity = 5
+
+        # During geomagnetic storms, elevate risk based on Kp
+        # This accounts for aurora, GPS errors, and radio disruption
+        # that occur during storms even before TEC peaks
+        storm_severity_boost = 0
+        if kp is not None and kp >= 5.0:
+            # Regional sensitivity to storms varies
+            regional_sensitivity = {
+                'auroral': 2.0,    # Most sensitive (aurora zone)
+                'mid_latitude': 1.5,  # Moderate sensitivity
+                'polar': 1.5,      # Moderate-high sensitivity
+                'equatorial': 1.0,  # Least sensitive
+                'global': 1.3      # Average
+            }
+
+            sensitivity = regional_sensitivity.get(region_code, 1.3)
+
+            # Kp 5-6 = G1-G2: +1 severity for sensitive regions
+            # Kp 7-8 = G3-G4: +2 severity for sensitive regions
+            # Kp 9+ = G5: +3 severity for sensitive regions
+            if kp >= 9:
+                storm_severity_boost = 3 * (sensitivity / 2.0)
+            elif kp >= 7:
+                storm_severity_boost = 2 * (sensitivity / 2.0)
+            elif kp >= 5:
+                storm_severity_boost = 1 * (sensitivity / 2.0)
+
+        # Combine TEC and storm-based severity
+        final_severity = min(5, int(round(tec_severity + storm_severity_boost)))
+
+        # Map severity to risk level
+        if final_severity <= 1:
             level = 'LOW'
             color = '#10b981'  # Green
-            severity = 1
             description = 'Minimal ionospheric disturbance. Normal GPS and communication conditions.'
-        elif tec < thresholds['moderate']:
+        elif final_severity == 2:
             level = 'MODERATE'
             color = '#fbbf24'  # Yellow
-            severity = 2
             description = 'Moderate ionospheric activity. Minor GPS and HF radio impacts possible.'
-        elif tec < thresholds['high']:
+        elif final_severity == 3:
             level = 'HIGH'
             color = '#f97316'  # Orange
-            severity = 3
             description = 'Elevated ionospheric disturbance. GPS errors 3-5m, HF radio disruption likely.'
-        elif tec < thresholds['extreme']:
+        elif final_severity == 4:
             level = 'SEVERE'
             color = '#ef4444'  # Red
-            severity = 4
             description = 'Severe ionospheric storm. Significant GPS degradation, satellite communication issues.'
         else:
             level = 'EXTREME'
             color = '#991b1b'  # Dark Red
-            severity = 5
             description = 'Extreme ionospheric storm. Major GPS outages possible, widespread communication disruption.'
 
         return {
             'level': level,
-            'severity': severity,
+            'severity': final_severity,
             'color': color,
             'description': description,
             'tec': round(float(tec), 2)
@@ -199,8 +239,8 @@ class RegionalEnsembleService:
                     current_conditions
                 )
 
-            # Assess risk level
-            risk = RegionalRiskLevel.assess_risk(region_code, regional_tec)
+            # Assess risk level (considering both TEC and Kp for storm conditions)
+            risk = RegionalRiskLevel.assess_risk(region_code, regional_tec, kp)
 
             # Calculate percentage change from regional climatological normal
             if climatology_forecast and climatology_forecast > 0:
