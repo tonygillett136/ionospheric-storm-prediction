@@ -70,6 +70,44 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+def _infer_kp_from_storm_probability(storm_prob: float) -> float:
+    """
+    Infer expected Kp index from ML model's storm probability.
+
+    Maps the model's 24h storm probability to an expected geomagnetic activity level.
+    This allows regional predictions to use the same forward-looking forecast as
+    the main dashboard instead of current conditions.
+
+    Storm probability thresholds align with the ML model's risk levels:
+    - < 25%: LOW risk → Kp 3-4 (quiet to unsettled)
+    - 25-50%: MODERATE risk → Kp 5-6 (G1 minor to G2 moderate storm)
+    - 50-75%: HIGH risk → Kp 7-8 (G3 strong to G4 severe storm)
+    - >= 75%: SEVERE risk → Kp 8-9 (G4-G5 severe to extreme storm)
+
+    Args:
+        storm_prob: Storm probability from ML model (0.0 to 1.0)
+
+    Returns:
+        Forecasted Kp index (0.0 to 9.0)
+    """
+    if storm_prob < 0.25:
+        # LOW risk: quiet to unsettled conditions
+        # Linear interpolation between Kp 3.0 (0% prob) and 4.5 (25% prob)
+        return 3.0 + (storm_prob / 0.25) * 1.5
+    elif storm_prob < 0.50:
+        # MODERATE risk: minor to moderate storm (G1-G2)
+        # Linear interpolation between Kp 4.5 (25% prob) and 6.0 (50% prob)
+        return 4.5 + ((storm_prob - 0.25) / 0.25) * 1.5
+    elif storm_prob < 0.75:
+        # HIGH risk: strong to severe storm (G3-G4)
+        # Linear interpolation between Kp 6.0 (50% prob) and 8.0 (75% prob)
+        return 6.0 + ((storm_prob - 0.50) / 0.25) * 2.0
+    else:
+        # SEVERE risk: severe to extreme storm (G4-G5)
+        # Linear interpolation between Kp 8.0 (75% prob) and 9.0 (100% prob)
+        return 8.0 + ((storm_prob - 0.75) / 0.25) * 1.0
+
+
 def init_data_service():
     """Initialize the global data service"""
     global data_service
@@ -312,13 +350,15 @@ async def get_ensemble_prediction(
 
 
 @router.get("/prediction/regional")
-async def get_regional_predictions(forecast_hours: int = 24):
+async def get_regional_predictions(forecast_hours: int = 24, db: AsyncSession = Depends(get_db)):
     """
     Get region-specific storm predictions for all geographic regions.
 
     This endpoint provides predictions tailored to each latitude band, accounting
     for the strong geographic variation in ionospheric TEC. A storm that's "moderate"
     globally might be "extreme" in auroral zones but "mild" at the equator.
+
+    Now uses the same ML ensemble model as the main dashboard for consistency.
 
     Args:
         forecast_hours: Hours ahead to forecast (default: 24)
@@ -350,20 +390,88 @@ async def get_regional_predictions(forecast_hours: int = 24):
         )
 
     try:
-        # Get current space weather conditions
-        current_conditions = {
-            'kp_index': data_service.latest_data.get('kp_index', 3.0),
+        # First, get the ML ensemble prediction to determine forecasted conditions
+        from app.models.ensemble_predictor import EnsembleStormPredictor
+
+        # Initialize ensemble predictor with default 70/30 weighting
+        ensemble = EnsembleStormPredictor(
+            model_path="models/v2/best_model.keras",
+            climatology_weight=0.7,
+            model_weight=0.3
+        )
+
+        # Load climatology if not already loaded
+        if not ensemble.climatology_loaded:
+            await ensemble.load_climatology()
+
+        # Use in-memory historical data
+        in_memory_data = list(data_service.historical_data)
+
+        # Get ML ensemble prediction
+        ml_prediction = None
+        forecasted_kp = data_service.latest_data.get('kp_index', 3.0)  # Default to current
+
+        if len(in_memory_data) >= 24:
+            # Format data for ensemble predictor
+            historical_data = []
+            for d in in_memory_data[-24:]:
+                tec_stats = d.get('tec_statistics', {})
+                sw_params = d.get('solar_wind_params', {})
+
+                historical_data.append({
+                    'tec_statistics': {
+                        'mean': tec_stats.get('mean', 0),
+                        'std': tec_stats.get('std', 0)
+                    },
+                    'kp_index': d.get('kp_index', 0),
+                    'dst_index': d.get('dst_index', 0),
+                    'solar_wind_params': {
+                        'speed': sw_params.get('speed', 0),
+                        'density': sw_params.get('density', 0)
+                    },
+                    'imf_bz': d.get('imf_bz', 0),
+                    'f107_flux': d.get('f107_flux', 100),
+                    'timestamp': d.get('timestamp', datetime.utcnow().isoformat()),
+                    'latitude': 45.0,
+                    'longitude': 0.0
+                })
+
+            try:
+                ml_prediction = await ensemble.predict_with_components(historical_data)
+
+                # Infer forecasted Kp from storm probability
+                # This maps the ML model's storm forecast to an expected Kp level
+                storm_prob = ml_prediction.get('storm_probability_24h', 0.0)
+                forecasted_kp = _infer_kp_from_storm_probability(storm_prob)
+
+                logger.info(f"ML prediction: {storm_prob:.1%} storm probability → forecasted Kp {forecasted_kp:.1f}")
+
+            except Exception as e:
+                logger.warning(f"ML ensemble prediction failed, using current Kp: {e}")
+
+        # Get forecasted space weather conditions (using ML-inferred Kp)
+        forecasted_conditions = {
+            'kp_index': forecasted_kp,
             'dst_index': data_service.latest_data.get('dst_index', 0.0),
             'solar_wind_speed': data_service.latest_data.get('solar_wind_params', {}).get('speed', 400.0),
             'imf_bz': data_service.latest_data.get('imf_bz', 0.0),
             'f107_flux': data_service.latest_data.get('f107_flux', 100.0)
         }
 
-        # Generate regional predictions
+        # Generate regional predictions using forecasted conditions
         predictions = regional_ensemble_service.generate_regional_predictions(
-            current_conditions,
+            forecasted_conditions,
             forecast_hours
         )
+
+        # Add ML prediction metadata to response
+        if ml_prediction:
+            predictions['ml_forecast'] = {
+                'storm_probability_24h': ml_prediction.get('storm_probability_24h', 0.0),
+                'risk_level_24h': ml_prediction.get('risk_level_24h', 'unknown'),
+                'forecasted_kp': forecasted_kp,
+                'current_kp': data_service.latest_data.get('kp_index', 3.0)
+            }
 
         return predictions
 
