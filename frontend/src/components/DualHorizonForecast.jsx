@@ -116,7 +116,7 @@ const DualHorizonForecast = ({ prediction }) => {
           <div
             style={{
               position: 'absolute',
-              bottom: '-5px',
+              bottom: '-20px',
               left: '50%',
               transform: 'translateX(-50%)',
               fontSize: '32px',

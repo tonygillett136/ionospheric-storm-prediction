@@ -90,7 +90,7 @@ const StormGauge = ({ probability = 0, riskLevel = 'low' }) => {
         <div
           style={{
             position: 'absolute',
-            bottom: '-10px',
+            bottom: '-25px',
             left: '50%',
             transform: 'translateX(-50%)',
             fontSize: '36px',
