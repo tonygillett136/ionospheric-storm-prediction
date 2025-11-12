@@ -189,6 +189,16 @@ class RegionalEnsembleService:
                     region
                 )
 
+            # Apply storm enhancement during active geomagnetic storms
+            # This is critical for real-time forecasting during storm conditions
+            if kp >= 5.0:
+                regional_tec = self._apply_storm_enhancement(
+                    regional_tec,
+                    kp,
+                    region_code,
+                    current_conditions
+                )
+
             # Assess risk level
             risk = RegionalRiskLevel.assess_risk(region_code, regional_tec)
 
@@ -270,6 +280,80 @@ class RegionalEnsembleService:
             regional_tec = (global_avg * baseline_factor) + storm_excess
 
         return max(0, regional_tec)
+
+    def _apply_storm_enhancement(
+        self,
+        baseline_tec: float,
+        kp: float,
+        region_code: str,
+        current_conditions: Dict
+    ) -> float:
+        """
+        Apply storm-time enhancements to TEC based on current geomagnetic activity.
+
+        During storms (Kp >= 5), TEC increases above climatological norms.
+        Enhancement varies by:
+        - Storm intensity (Kp index)
+        - Geographic region (auroral zones most affected)
+        - Solar wind parameters
+
+        Args:
+            baseline_tec: Climatological TEC value
+            kp: Current Kp index
+            region_code: Geographic region
+            current_conditions: Current space weather parameters
+
+        Returns:
+            Enhanced TEC value accounting for storm conditions
+        """
+        # Storm enhancement factors by region (empirically derived)
+        # These represent how much TEC increases during storms relative to quiet-time
+        regional_storm_response = {
+            'equatorial': 1.15,      # Modest enhancement (equatorial anomaly effects)
+            'mid_latitude': 1.35,    # Moderate enhancement (main phase effects)
+            'auroral': 1.65,         # Strong enhancement (particle precipitation)
+            'polar': 1.45,           # Moderate-strong (cusp/cap effects)
+            'global': 1.30           # Average response
+        }
+
+        response_factor = regional_storm_response.get(region_code, 1.30)
+
+        # Calculate storm intensity factor based on Kp
+        # Kp=5 (G1): minor enhancement
+        # Kp=7 (G3): moderate enhancement
+        # Kp=9 (G5): extreme enhancement
+        if kp < 5:
+            storm_intensity = 0.0  # No enhancement
+        elif kp < 6:
+            storm_intensity = 0.20  # G1 Minor: 20% enhancement
+        elif kp < 7:
+            storm_intensity = 0.35  # G2 Moderate: 35% enhancement
+        elif kp < 8:
+            storm_intensity = 0.55  # G3 Strong: 55% enhancement
+        elif kp < 9:
+            storm_intensity = 0.75  # G4 Severe: 75% enhancement
+        else:
+            storm_intensity = 1.00  # G5 Extreme: 100% enhancement
+
+        # Apply regional response to storm intensity
+        enhancement_factor = 1.0 + (storm_intensity * (response_factor - 1.0))
+
+        # Additional boost for high solar wind speed (>600 km/s indicates strong driving)
+        solar_wind_speed = current_conditions.get('solar_wind_speed', 400)
+        if solar_wind_speed > 600:
+            speed_boost = min((solar_wind_speed - 600) / 400, 0.2)  # Up to 20% extra
+            enhancement_factor += speed_boost
+
+        # Apply enhancement
+        enhanced_tec = baseline_tec * enhancement_factor
+
+        logger.info(
+            f"Storm enhancement for {region_code}: Kp={kp:.1f}, "
+            f"baseline={baseline_tec:.1f}, enhanced={enhanced_tec:.1f} "
+            f"(+{(enhancement_factor-1)*100:.1f}%)"
+        )
+
+        return enhanced_tec
 
     def _calculate_global_risk(self, regional_predictions: Dict) -> Dict:
         """
