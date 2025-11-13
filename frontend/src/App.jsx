@@ -33,6 +33,7 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [activeView, setActiveView] = useState('dashboard');
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     console.log('App mounted');
@@ -49,6 +50,17 @@ function App() {
       clearInterval(interval);
       api.disconnectWebSocket();
     };
+  }, []);
+
+  // Scroll detection for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const fetchAllData = async () => {
@@ -155,35 +167,58 @@ function App() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0a0e27, #1a1a2e, #16213e)',
       color: '#fff',
-      padding: '20px'
+      paddingTop: isScrolled ? '90px' : '20px',
+      paddingLeft: '20px',
+      paddingRight: '20px',
+      paddingBottom: '20px',
+      transition: 'padding-top 0.3s ease'
     }}>
       <header style={{
-        marginBottom: '30px',
-        padding: '20px',
-        background: 'rgba(0, 20, 40, 0.6)',
-        borderRadius: '16px',
-        border: '1px solid rgba(74, 144, 226, 0.3)'
+        position: isScrolled ? 'fixed' : 'relative',
+        top: isScrolled ? '0' : 'auto',
+        left: isScrolled ? '0' : 'auto',
+        right: isScrolled ? '0' : 'auto',
+        zIndex: 1000,
+        marginBottom: isScrolled ? '0' : '30px',
+        marginLeft: isScrolled ? '0' : 'auto',
+        marginRight: isScrolled ? '0' : 'auto',
+        padding: isScrolled ? '10px 20px' : '20px',
+        background: isScrolled ? 'rgba(0, 20, 40, 0.95)' : 'rgba(0, 20, 40, 0.6)',
+        backdropFilter: isScrolled ? 'blur(10px)' : 'none',
+        borderRadius: isScrolled ? '0' : '16px',
+        border: '1px solid rgba(74, 144, 226, 0.3)',
+        boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.5)' : 'none',
+        transition: 'all 0.3s ease'
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
+          marginBottom: isScrolled ? '8px' : '20px',
           flexWrap: 'wrap',
-          gap: '20px'
+          gap: '20px',
+          transition: 'margin-bottom 0.3s ease'
         }}>
           <div>
             <h1 style={{
-              fontSize: '32px',
-              marginBottom: '8px',
+              fontSize: isScrolled ? '22px' : '32px',
+              marginBottom: isScrolled ? '0' : '8px',
               background: 'linear-gradient(90deg, #4a90e2, #50e3c2)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              backgroundClip: 'text',
+              transition: 'all 0.3s ease'
             }}>
               Ionospheric Storm Prediction
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.7)' }}>
+            <p style={{
+              color: 'rgba(255,255,255,0.7)',
+              maxHeight: isScrolled ? '0' : '30px',
+              opacity: isScrolled ? '0' : '1',
+              overflow: 'hidden',
+              transition: 'all 0.3s ease',
+              margin: isScrolled ? '0' : 'inherit'
+            }}>
               Real-time monitoring and 24-hour forecasting • Powered by Ensemble Model
             </p>
           </div>
@@ -207,22 +242,24 @@ function App() {
         {/* Navigation Tabs */}
         <div style={{
           display: 'flex',
-          gap: '8px',
+          gap: isScrolled ? '4px' : '8px',
           borderBottom: '1px solid rgba(74, 144, 226, 0.3)',
-          paddingBottom: '0'
+          paddingBottom: '0',
+          flexWrap: 'wrap',
+          transition: 'gap 0.3s ease'
         }}>
           <button
             onClick={() => setActiveView('dashboard')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'dashboard' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'dashboard' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'dashboard' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'dashboard' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -231,15 +268,15 @@ function App() {
           <button
             onClick={() => setActiveView('backtest')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'backtest' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'backtest' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'backtest' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'backtest' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -248,15 +285,15 @@ function App() {
           <button
             onClick={() => setActiveView('impact')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'impact' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'impact' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'impact' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'impact' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -265,15 +302,15 @@ function App() {
           <button
             onClick={() => setActiveView('regional')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'regional' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'regional' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'regional' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'regional' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -282,15 +319,15 @@ function App() {
           <button
             onClick={() => setActiveView('ensemble')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'ensemble' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'ensemble' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'ensemble' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'ensemble' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -299,15 +336,15 @@ function App() {
           <button
             onClick={() => setActiveView('climatology')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'climatology' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'climatology' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'climatology' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'climatology' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -316,15 +353,15 @@ function App() {
           <button
             onClick={() => setActiveView('storms')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'storms' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'storms' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'storms' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'storms' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -333,15 +370,15 @@ function App() {
           <button
             onClick={() => setActiveView('performance')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'performance' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'performance' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'performance' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'performance' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
@@ -350,15 +387,15 @@ function App() {
           <button
             onClick={() => setActiveView('learn')}
             style={{
-              padding: '12px 24px',
+              padding: isScrolled ? '8px 16px' : '12px 24px',
               background: activeView === 'learn' ? 'rgba(74, 144, 226, 0.2)' : 'transparent',
               border: 'none',
               borderBottom: activeView === 'learn' ? '3px solid #4a90e2' : '3px solid transparent',
               color: activeView === 'learn' ? '#4a90e2' : 'rgba(255,255,255,0.7)',
-              fontSize: '14px',
+              fontSize: isScrolled ? '13px' : '14px',
               fontWeight: activeView === 'learn' ? 'bold' : 'normal',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.3s ease',
               borderRadius: '8px 8px 0 0'
             }}
           >
