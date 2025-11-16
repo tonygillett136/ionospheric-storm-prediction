@@ -53,17 +53,17 @@ This system provides critical space weather forecasting for applications in:
 - **Fast Queries** - Indexed retrieval across any time range
 - **Authoritative Sources** - GFZ Potsdam (Kp), Kyoto WDC (Dst), NASA spacecraft
 
-### 🌐 Regional Predictions (New!)
-- **Geographic-Specific Forecasting** - Scientifically-validated regional TEC predictions
+### 🌐 Regional Predictions
+- **Geographic-Specific Forecasting** - ML-enhanced regional TEC predictions
   - **5 Geographic Regions**: Equatorial, Mid-Latitude, Auroral, Polar, Global
-  - **Physics-Based Adjustments**: Region-specific baseline and variability factors
-  - **Experimental Validation**: 90-day backtesting proves Climatology-Primary superior
+  - **Ensemble ML Integration**: Uses same ensemble model as main dashboard
+  - **Storm-Aware Risk Assessment**: Kp-aware risk levels during geomagnetic storms
   - **Region-Specific Risk Thresholds**: Different TEC levels trigger alerts in different zones
-- **Scientifically Validated Approach**
-  - Comprehensive 90-day backtest experiment (Aug-Nov 2025)
-  - Climatology-Primary wins in 4/5 regions with high confidence
-  - Total improvement: 7.341 TECU across all regions
-  - Detailed metrics: MAE, RMSE, median error, max error per region
+- **Physics-Based Storm Enhancements**
+  - Geographic response factors (Auroral: 1.65x, Mid-Latitude: 1.35x, Equatorial: 1.15x)
+  - G-scale storm intensity mapping (G1 through G5)
+  - Forecasted Kp inference from ML storm probability
+  - Real-time storm enhancement applied to regional forecasts
 
 ### 📚 Educational Features
 - **Climatology Explorer** - Interactive exploration of TEC patterns with geographic and seasonal analysis

@@ -1,6 +1,6 @@
 # Session Continuity Guide
 
-**Last Updated:** November 6, 2025
+**Last Updated:** November 16, 2025
 **Purpose:** Help anyone (including AI assistants) pick up where we left off
 
 ## Current System State
@@ -26,45 +26,37 @@
 
 - **Branch**: `main`
 - **Remote**: https://github.com/tonygillett136/ionospheric-storm-prediction.git
-- **Latest Commit**: `6d70dde` - "Add Historical Storm Gallery feature"
+- **Latest Commit**: `e73dabf` - "Update regional predictions UI to reflect ensemble ML model"
 - **Status**: All changes committed and pushed ✅
 
-### 🆕 Recently Added Features (Today's Session)
+### 🆕 Recently Added Features (November 16, 2025 Session)
 
-#### 1. Climatology Explorer (Completed ✅)
+#### 1. Regional ML Integration (Completed ✅)
 **Commits:**
-- `7cb503d` - Main feature
-- `78fd56e` - Bug fix (numpy import)
-- `344f49e` - Seasonal chart fix
+- `1541c4b` - Add storm enhancement factors
+- `041b4f9` - Make regional risk assessment Kp-aware
+- `658c34e` - Integrate ML ensemble forecast into regional predictions
+- `ae07c08` - Fix speedometer needle overlapping
+- `1fd0cd2` - Implement sticky condensing header
+- `e73dabf` - Update regional predictions UI
 
-**Files:**
-- `frontend/src/components/ClimatologyExplorer.jsx` (623 lines)
-- `frontend/src/styles/ClimatologyExplorer.css` (584 lines)
-- `backend/app/api/routes.py` (+247 lines, 2 endpoints)
-- `CLIMATOLOGY_EXPLORER.md` (documentation)
-
-**Features:**
-- 3 interactive views (Time Series, Kp Comparison, Seasonal Patterns)
-- Extended forecasting up to 2 years into future
-- Educational content about climatology
-- New tab: 📚 Climatology Explorer
-
-#### 2. Historical Storm Gallery (Completed ✅)
-**Commit:** `6d70dde`
-
-**Files:**
-- `backend/storm_events.py` (174 lines) - Storm metadata database
-- `frontend/src/components/StormGallery.jsx` (434 lines)
-- `frontend/src/styles/StormGallery.css` (476 lines)
-- `backend/app/api/routes.py` (+120 lines, 2 endpoints)
-- `STORM_GALLERY.md` (documentation)
+**Files Modified:**
+- `backend/app/api/routes.py` - Added `_infer_kp_from_storm_probability()`, integrated ML into regional endpoint
+- `backend/app/services/regional_ensemble_service.py` - Added `_apply_storm_enhancement()`, Kp-aware risk assessment
+- `frontend/src/components/StormGauge.jsx` - Fixed label positioning
+- `frontend/src/components/DualHorizonForecast.jsx` - Fixed label positioning
+- `frontend/src/App.jsx` - Implemented sticky condensing header
+- `frontend/src/components/RegionalPredictions.jsx` - Updated validation note
 
 **Features:**
-- 6 curated major storms (2015-2025)
-- Real measurement data from NASA OMNI database
-- Interactive charts (Kp, TEC, Solar Wind)
-- Real-world impact stories
-- New tab: ⚡ Storm Gallery
+- **Regional forecasts now use ensemble ML model** (same as main dashboard)
+- **Storm enhancement system** with geographic response factors:
+  - Auroral zones: 1.65x during storms
+  - Mid-latitude: 1.35x during storms
+  - Equatorial: 1.15x during storms
+- **Kp-aware risk assessment** with regional sensitivity
+- **Forecasted Kp inference** from ML storm probability
+- **UI improvements**: Fixed speedometer overlaps, sticky condensing header
 
 ## Quick Commands
 
@@ -166,30 +158,30 @@ See `API_REFERENCE.md` for complete list.
 
 ## Where We Left Off
 
-### Completed Today ✅
-1. ✅ Climatology Explorer - Fully implemented and tested
-2. ✅ Storm Gallery - Fully implemented and tested
-3. ✅ Bug fixes - Seasonal chart, numpy import
-4. ✅ Documentation - CLIMATOLOGY_EXPLORER.md, LOCAL_DEPLOYMENT.md
-5. ✅ Git - All commits pushed to main
+### Completed November 16, 2025 ✅
+1. ✅ Regional ML Integration - Regional predictions now use ensemble model
+2. ✅ Storm Enhancement System - Geographic response factors implemented
+3. ✅ Kp-Aware Risk Assessment - Regional sensitivity to geomagnetic activity
+4. ✅ UI Fixes - Speedometer needle overlap fixed
+5. ✅ Sticky Condensing Header - Smooth scroll transitions
+6. ✅ Documentation Updates - README, CHANGELOG, SESSION_CONTINUITY updated
+7. ✅ Git - All commits pushed to main (6 commits)
 
 ### Outstanding Items ⚠️
-1. ❌ **Storm Gallery documentation** - Just created! ✅
-2. ❌ **README update** - Doesn't mention new features yet
-3. ❌ **CHANGELOG** - No changelog file exists
-4. ❌ **Production deployment** - Still local only
+1. ❌ **Production deployment** - Still local only
+2. ❌ **TECHNICAL_OVERVIEW.md** - Outdated, doesn't reflect ensemble model or recent changes
 
 ### Recommended Next Steps
 
 **Immediate (High Priority):**
-1. Update README.md to include Climatology Explorer and Storm Gallery
-2. Create CHANGELOG.md documenting all features
-3. Test both new features thoroughly in browser
-4. Create production build: `cd frontend && npm run build`
+1. Test regional predictions thoroughly to verify ML integration
+2. Verify storm enhancements are working during active geomagnetic conditions
+3. Create production build: `cd frontend && npm run build`
 
 **Soon (Medium Priority):**
+4. Update TECHNICAL_OVERVIEW.md to reflect ensemble model and recent changes
 5. Add more storms to storm_events.py database
-6. Implement one of the "Quick Win" features from earlier recommendations:
+6. Implement one of the "Quick Win" features:
    - Location presets for Regional Forecast (2-3 hours)
    - CSV export for climatology data (1-2 hours)
    - "Share this prediction" button (1-2 hours)
@@ -428,6 +420,12 @@ See `docs/DEPLOYMENT.md` for detailed instructions.
 
 - **2025-11-06**: Initial creation after adding Climatology Explorer and Storm Gallery
 - **2025-11-06**: Added Storm Gallery documentation
+- **2025-11-16**: Updated with Regional ML Integration session (6 commits):
+  - Regional predictions now use ensemble ML model
+  - Storm enhancement system implemented
+  - Kp-aware risk assessment added
+  - UI fixes (speedometer overlaps, sticky header)
+  - Documentation updates (README, CHANGELOG, SESSION_CONTINUITY)
 
 ---
 

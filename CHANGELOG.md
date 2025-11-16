@@ -80,7 +80,42 @@ All notable changes to the Ionospheric Storm Prediction System.
 
 ## [Unreleased]
 
-*No unreleased changes at this time. All recent work has been released in v2.1.0.*
+### Added - November 16, 2025 Session
+- **Regional ML Integration** - Regional predictions now use ensemble ML model
+  - Modified `/prediction/regional` endpoint to call ensemble predictor first
+  - Infer forecasted Kp from ML storm probability for regional forecasts
+  - Regional predictions now align with main dashboard forecasts
+- **Storm Enhancement System** for regional predictions
+  - Added `_apply_storm_enhancement()` method to regional ensemble service
+  - Geographic response factors: Auroral (1.65x), Mid-latitude (1.35x), Equatorial (1.15x)
+  - G-scale storm intensity mapping (G1-G5)
+  - Storm enhancements applied when Kp >= 5.0
+- **Kp-Aware Risk Assessment** for regional forecasts
+  - Modified `assess_risk()` to accept and use Kp parameter
+  - Regional sensitivity factors for storm impact (Auroral: 2.0x, Mid-lat: 1.5x, Equatorial: 1.0x)
+  - Storm severity boost calculation based on geomagnetic activity
+
+### Changed
+- **Regional Predictions UI** updated to reflect ML-enhanced approach
+  - Validation note changed from "Climatology-Primary" to "ML-Enhanced Predictions"
+  - Updated description to explain ensemble model integration
+
+### Fixed
+- **Speedometer Gauge Overlaps** in forecast visualizations
+  - StormGauge.jsx: Moved percentage label down 15px (bottom: -10px → -25px)
+  - DualHorizonForecast.jsx: Moved percentage label down 15px (bottom: -5px → -20px)
+  - Needle no longer overlaps with percentage value
+- **Sticky Condensing Header** implementation
+  - Header position becomes fixed when scrolling past 50px
+  - Title shrinks from 32px → 22px
+  - Subtitle fades out completely (opacity 1 → 0)
+  - Navigation buttons condense (12px/24px → 8px/16px padding)
+  - Smooth transitions (0.3s ease) for all elements
+  - Backdrop blur and shadow effects when sticky
+
+### Documentation
+- Updated `README.md` - Changed regional predictions description to reflect ML ensemble integration
+- Updated `RegionalPredictions.jsx` validation note - Now explains ML-enhanced approach
 
 ---
 
