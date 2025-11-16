@@ -375,9 +375,9 @@ const RegionalPredictions = () => {
       <div className="validation-note">
         <div className="validation-icon">🔬</div>
         <div className="validation-text">
-          <strong>Experimentally Validated:</strong> This Climatology-Primary approach was proven superior
-          through 90-day backtesting, winning in 4 out of 5 regions with a total improvement of 7.341 TECU.
-          See <code>REGIONAL_EXPERIMENT_REPORT.md</code> for full methodology and results.
+          <strong>ML-Enhanced Predictions:</strong> Regional forecasts now use the same ensemble ML model
+          as the main dashboard, combining climatological patterns with neural network storm predictions
+          for improved accuracy. Geographic-specific thresholds ensure region-adapted risk assessments.
         </div>
       </div>
     </div>
